@@ -1,11 +1,8 @@
 package com.example.demo.view
 
-import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
-
-import tornadofx.*
-import java.awt.TextField
+import tornadofx.View
 
 
 class MainView : View() {

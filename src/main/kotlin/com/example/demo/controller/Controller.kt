@@ -11,32 +11,121 @@ import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.stage.StageStyle
 import tornadofx.FX.Companion.primaryStage
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.PrintStream
+import java.net.ServerSocket
 import java.net.URL
+import java.nio.charset.StandardCharsets
 import java.util.*
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.roundToInt
 
 
 class Controller : Initializable {
-
 
     @FXML
     lateinit var iPText: TextField
     lateinit var textAreaChat: TextArea
     lateinit var bTChoose: Button
     lateinit var bTSend: Button
+    lateinit var bTApply: Button
     lateinit var tFFile: TextField
+    lateinit var tFEnterText: TextField
     lateinit var tSize: Text
     lateinit var mHelp: MenuItem
+    lateinit var cBMode: ChoiceBox<String>
 
+
+    private val queue = ConcurrentLinkedQueue<String>()
+
+    enum class modes {
+        EBC,
+        CBC,
+        OTB,
+        ABC,
+
+    }
 
     @FXML
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         initButtonSend()
         initMenu()
+        initRadioBox()
+        initButtonApplay()
+        initChat()
+        initTextFieldEnterText()
     }
 
 
-    fun initMenu(){
+    fun initChat() {
+
+        Thread {
+
+            val ss = ServerSocket(888)
+
+            val s = ss.accept()
+            textAreaChat.appendText("User join to chat" + '\n')
+
+            val ps = PrintStream(s.getOutputStream())
+
+            val br = BufferedReader(InputStreamReader(s.getInputStream()))
+
+            try {
+                while (true) {
+                    var str: String?
+
+                    while (br.readLine().also { str = it } != null) {
+                        textAreaChat.appendText(str + '\n')
+
+                        println(str)
+
+                        if (!queue.isEmpty()) {
+                            ps.println(queue.poll())
+                        } else {
+                            println("pusto")
+                        }
+
+                    }
+                }
+            }
+            catch (e : Exception) {
+                initChat()
+            }
+            finally {
+
+                ps.close()
+                br.close()
+                ss.close()
+                s.close()
+
+                textAreaChat.appendText("User left chat" + '\n')
+                println("koniec")
+            } // end of while
+        }.start()
+
+    }
+
+    private fun initTextFieldEnterText() {
+        tFEnterText.setOnAction { queue.add(tFEnterText.text)
+            println(tFEnterText.text)
+            tFEnterText.clear()
+        }
+
+    }
+
+
+    fun initButtonApplay() {
+        bTApply.setOnAction { println(iPText.text) }
+    }
+
+    fun initRadioBox() {
+        cBMode.items.addAll(modes.EBC.name, modes.CBC.name, modes.OTB.name, modes.ABC.name)
+        cBMode.setOnAction { println(cBMode.selectionModel.selectedItem) }
+    }
+
+    fun initMenu() {
         mHelp.setOnAction {
 
             val secondLabel = Label("Program wykonany w ramach projektu\nna przedmiot BSK przez: \n Patryk Kalkowski 175669")
@@ -49,8 +138,10 @@ class Controller : Initializable {
             stage.scene = secondScene
 
             stage.title = "ABC"
-            stage.show() }
+            stage.show()
+        }
     }
+
 
     fun initButtonSend() {
         bTChoose.setOnAction {
