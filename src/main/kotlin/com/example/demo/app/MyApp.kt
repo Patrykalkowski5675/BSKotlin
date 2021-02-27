@@ -11,11 +11,10 @@ fun main(args: Array<String>) {
 }
 
 class MyApp : App(MainView::class) {
-    override fun start(stage: Stage) {
-        stage.title = "Patryk Kalkowski 175669"
-        super.start(stage)
-    }
 
+//    override fun start(stage: Stage) {
+//        super.start(stage)
+//    }
 
 }
 

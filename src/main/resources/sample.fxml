@@ -41,7 +41,6 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
@@ -60,18 +59,7 @@
       <menus>
         <Menu mnemonicParsing="false" text="File">
           <items>
-            <MenuItem mnemonicParsing="false" text="New" />
-            <MenuItem mnemonicParsing="false" text="Open…" />
-            <Menu mnemonicParsing="false" text="Open Recent" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Close" />
-            <MenuItem mnemonicParsing="false" text="Save" />
-            <MenuItem mnemonicParsing="false" text="Save As…" />
-            <MenuItem mnemonicParsing="false" text="Revert" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Preferences…" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Quit" />
+            <MenuItem fx:id="mQuit" mnemonicParsing="false" text="Quit" />
           </items>
         </Menu>
         <Menu mnemonicParsing="false" text="Help">
@@ -93,17 +81,17 @@
                 <Color red="0.624" green="0.624" blue="0.624" fx:id="x2" />
               </textFill>
             </Label>
-                  <ProgressBar layoutX="22.0" layoutY="496.0" prefHeight="18.0" prefWidth="176.0" progress="0.0" style="-fx-background-radius: 0;" />
+                  <ProgressBar fx:id="progressBar" layoutX="22.0" layoutY="496.0" prefHeight="18.0" prefWidth="176.0" progress="0.0" style="-fx-background-radius: 0;" />
                   <Text fx:id="t" layoutY="533.0" opacity="0.45" strokeType="OUTSIDE" strokeWidth="0.0" text="Progress" textAlignment="CENTER" wrappingWidth="221.0">
                      <font>
                         <Font size="11.0" />
                      </font>
                   </Text>
-                  <Button fx:id="bTChoose" layoutX="22.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="72.0" style="-fx-background-radius: 0;" text="Choose a file" textAlignment="CENTER" wrapText="true">
+                  <Button fx:id="bTChoose" layoutX="22.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="83.0" style="-fx-background-radius: 0;" text="Choose a file" textAlignment="CENTER" wrapText="true">
                      <effect>
                         <Blend mode="HARD_LIGHT" />
                      </effect></Button>
-                  <Button fx:id="bTSend" disable="true" layoutX="126.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="72.0" style="-fx-background-radius: 0;" text="Send file" textAlignment="CENTER">
+                  <Button fx:id="bTSend" disable="true" layoutX="115.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="83.0" style="-fx-background-radius: 0;" text="Send file" textAlignment="CENTER">
                      <effect>
                         <Blend mode="HARD_LIGHT" />
                      </effect></Button>
