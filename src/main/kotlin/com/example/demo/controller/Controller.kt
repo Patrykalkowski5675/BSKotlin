@@ -12,7 +12,6 @@ import javafx.scene.layout.StackPane
 import javafx.scene.text.Text
 import javafx.stage.FileChooser
 import javafx.stage.Stage
-import javafx.stage.WindowEvent
 import tornadofx.FX.Companion.primaryStage
 import java.net.URL
 import java.time.LocalDateTime
@@ -77,8 +76,8 @@ class Controller : Initializable {
 
     private fun initChat() {
         when(MyApp.param){
-            "Server" -> ServerChatController.initServerChat(queue, textAreaChat, iPText)
-            "Client" -> ClientChatController.initClientChat(queue, textAreaChat, iPText)
+            "Server" -> TCPServerChatController.initServerChat(queue, textAreaChat, iPText)
+            "Client" -> TCPClientChatController.initClientChat(queue, textAreaChat, iPText)
             else ->println("Unknown parameter")
         }
 

@@ -12,16 +12,12 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentLinkedQueue
 
 
-object ClientChatController {
+object TCPClientChatController {
 
     private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-//    val ds = DatagramSocket(5334)
-//    val ip = InetAddress.getLocalHost()
 
-    var s = Socket("localhost", 5334)
-//    var dos: DataOutputStream = DataOutputStream(s.getOutputStream())
-var pwrite: PrintWriter = PrintWriter(s.getOutputStream(), true)
-    var br = BufferedReader(InputStreamReader(s.getInputStream()))
+
+
 
     fun initClientChat(queue: ConcurrentLinkedQueue<String>, textAreaChat: TextArea, iPText: TextField) {
 
@@ -29,6 +25,10 @@ var pwrite: PrintWriter = PrintWriter(s.getOutputStream(), true)
 
         println("Running")
         println("Client is Up....")
+
+        lateinit var s : Socket
+        lateinit var pwrite: PrintWriter
+        lateinit var br : BufferedReader
 
         var threadSend = Thread {
             var sd: String
@@ -42,15 +42,18 @@ var pwrite: PrintWriter = PrintWriter(s.getOutputStream(), true)
                     print(sd)
                 }
             } catch (e: Exception) {
+                pwrite.close()
                 println("Exception occured");
-            }
-            finally {
-                s.close()
             }
         }
 
         var threadRecive = Thread {
             try {
+                s = Socket("localhost", 5334)
+                pwrite = PrintWriter(s.getOutputStream(), true)
+                br = BufferedReader(InputStreamReader(s.getInputStream()))
+                threadSend.start()
+                textAreaChat.appendText("Successfully connected with server")
                 while (true) {
                     val rd = ByteArray(1000)
 
@@ -75,14 +78,14 @@ var pwrite: PrintWriter = PrintWriter(s.getOutputStream(), true)
 
                 }
             } catch (e: Exception) {
-                System.out.println("Exception occured")
-            }
-            finally {
-                s.close()
+                textAreaChat.appendText("*Server is not available, please wait, reconnecting in 5 second...\n")
+                Thread.sleep(5000)
+                initClientChat(queue, textAreaChat, iPText)
             }
         }
 
-        threadSend.start()
+
         threadRecive.start()
+
     }
 }

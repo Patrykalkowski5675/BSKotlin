@@ -14,12 +14,9 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentLinkedQueue
 
 
-object ServerChatController{
+object TCPServerChatController{
 
-    private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-    var ss = ServerSocket(5334)
-    val ip = InetAddress.getLocalHost()
-    lateinit var ps: PrintStream
+
 
     fun initServerChat(queue: ConcurrentLinkedQueue<String>, textAreaChat: TextArea, iPText: TextField) {
 
@@ -30,9 +27,12 @@ object ServerChatController{
         println("Running")
         println("Server is Up....")
 
-        val s : Socket
-
-        var br: BufferedReader
+        val dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+        val ss = ServerSocket(5334)
+//        val ip = InetAddress.getLocalHost()
+        lateinit var ps: PrintStream
+        lateinit var s : Socket
+        lateinit var br: BufferedReader
 
         val threadSend = Thread {
             var sd : String
@@ -45,15 +45,14 @@ object ServerChatController{
 
             } catch (e: Exception) {
                 println("Exception occurred")
-            }  finally {
-                ss.close()
             }
         }
 
 
         val threadReceive = Thread {
             try {
-                val s = ss.accept()
+                s = ss.accept()
+                textAreaChat.appendText("*User join to chat\n")
                 ps = PrintStream(s.getOutputStream())
                 br = BufferedReader(InputStreamReader(s.getInputStream()))
                 while (true) {
@@ -80,9 +79,12 @@ object ServerChatController{
 
                 }
             } catch (e: Exception) {
-                println("Exception occured")
-            }  finally {
+                textAreaChat.appendText("*User left chat\n")
+                ps.close()
+                br.close()
                 ss.close()
+                s.close()
+                initServerChat(queue, textAreaChat, iPText)
             }
         }
 
