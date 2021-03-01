@@ -1,5 +1,8 @@
 package com.example.demo.controller
 
+import com.example.demo.app.MyApp
+import javafx.application.Platform
+import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.geometry.Pos
@@ -9,11 +12,8 @@ import javafx.scene.layout.StackPane
 import javafx.scene.text.Text
 import javafx.stage.FileChooser
 import javafx.stage.Stage
+import javafx.stage.WindowEvent
 import tornadofx.FX.Companion.primaryStage
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.PrintStream
-import java.net.ServerSocket
 import java.net.URL
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -37,13 +37,15 @@ class Controller : Initializable {
     lateinit var mHelp: MenuItem
     lateinit var mQuit: MenuItem
     lateinit var cBMode: ChoiceBox<String>
-    lateinit var progressBar : ProgressBar
-
+    lateinit var progressBar: ProgressBar
 
     private val queue = ConcurrentLinkedQueue<String>()
+    private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
-    var dtf = DateTimeFormatter.ofPattern("HH:mm:ss")
-    var timePoint = LocalDateTime.now()
+    companion object {
+        var nameUserFlag = true
+        var namePartnerFlag = true
+    }
 
     enum class Modes {
         EBC,
@@ -54,63 +56,87 @@ class Controller : Initializable {
 
     @FXML
     override fun initialize(location: URL?, resources: ResourceBundle?) {
+        primaryStage.maxHeight = 650.0
+
         initButtonChooseFile()
         initMenu()
         initRadioBox()
         initButtonApplay()
         initChat()
         initTextFieldEnterText()
+        initFnOnClose()
+
     }
 
+    private fun initFnOnClose(){
+        primaryStage.onCloseRequest = EventHandler {
+            Platform.exit()
+            exitProcess(0)
+        }
+    }
 
     private fun initChat() {
+        when(MyApp.param){
+            "Server" -> ServerChatController.initServerChat(queue, textAreaChat, iPText)
+            "Client" -> ClientChatController.initClientChat(queue, textAreaChat, iPText)
+            else ->println("Unknown parameter")
+        }
 
-        Thread {
-            val ss = ServerSocket(888)
-            val s = ss.accept()
+            /*
+            Thread {
+                val ss = ServerSocket(888)
+                val s = ss.accept()
 
-            textAreaChat.appendText("User join to chat" + '\n')
+                textAreaChat.appendText("User join to chat" + '\n')
 
-            val ps = PrintStream(s.getOutputStream())
-            val br = BufferedReader(InputStreamReader(s.getInputStream()))
+                val ps = PrintStream(s.getOutputStream())
+                val br = BufferedReader(InputStreamReader(s.getInputStream()))
 
-            try {
-                while (true) {
-                    var str: String?
+                try {
+                    while (true) {
+                        var str: String?
 
-                    while (br.readLine().also { str = it } != null) {
-                        textAreaChat.appendText(str + '\n')
+                        while (br.readLine().also { str = it } != null) {
+                            textAreaChat.appendText(dtf.format(LocalDateTime.now()) + " -> " + str + '\n')
 
-                        println(str)
+                            println(str)
 
-                        if (!queue.isEmpty()) {
-                            ps.println(queue.poll())
-                        } else {
-                            println("pusto")
+                            if (!queue.isEmpty()) {
+                                ps.println(queue.poll())
+                            } else {
+                                println("pusto")
+                            }
                         }
-
                     }
+                } catch (e: Exception) {
+                    ps.close()
+                    br.close()
+                    ss.close()
+                    s.close()
+                    initChat()
+                } finally {
+                    ps.close()
+                    br.close()
+                    ss.close()
+                    s.close()
+
+                    textAreaChat.appendText("User left chat" + '\n')
+                    println("koniec")
                 }
-            } catch (e: Exception) {
-                initChat()
-            } finally {
-                ps.close()
-                br.close()
-                ss.close()
-                s.close()
-
-                textAreaChat.appendText("User left chat" + '\n')
-                println("koniec")
-            }
-        }.start()
-
+            }.start()
+*/
     }
 
     private fun initTextFieldEnterText() {
         tFEnterText.setOnAction {
-            if(!tFEnterText.text.isNullOrBlank()) {
+            if (!tFEnterText.text.isNullOrBlank()) {
                 queue.add(tFEnterText.text)
-                textAreaChat.appendText(dtf.format(LocalDateTime.now()) + " -> " + tFEnterText.text + '\n')
+                if (nameUserFlag) {
+                    textAreaChat.appendText('\t' + MyApp.param + ":\n" + dtf.format(LocalDateTime.now()) + " -> " + tFEnterText.text + '\n')
+                    nameUserFlag = false
+                    namePartnerFlag = true
+                } else
+                    textAreaChat.appendText(dtf.format(LocalDateTime.now()) + " -> " + tFEnterText.text + '\n')
                 tFEnterText.clear()
             }
         }
@@ -143,6 +169,7 @@ class Controller : Initializable {
         }
 
         mQuit.setOnAction { exitProcess(1) }
+
 
     }
 
