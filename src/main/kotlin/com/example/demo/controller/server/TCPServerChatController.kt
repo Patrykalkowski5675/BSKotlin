@@ -1,12 +1,11 @@
-package com.example.demo.controller
+package com.example.demo.controller.server
 
+import com.example.demo.controller.Controller
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintStream
-import java.net.DatagramPacket
-import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.time.LocalDateTime
@@ -15,8 +14,6 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 
 object TCPServerChatController{
-
-
 
     fun initServerChat(queue: ConcurrentLinkedQueue<String>, textAreaChat: TextArea, iPText: TextField) {
 
@@ -29,7 +26,6 @@ object TCPServerChatController{
 
         val dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
         val ss = ServerSocket(5334)
-//        val ip = InetAddress.getLocalHost()
         lateinit var ps: PrintStream
         lateinit var s : Socket
         lateinit var br: BufferedReader
@@ -56,10 +52,6 @@ object TCPServerChatController{
                 ps = PrintStream(s.getOutputStream())
                 br = BufferedReader(InputStreamReader(s.getInputStream()))
                 while (true) {
-//                    val rd = ByteArray(1000)
-
-//                    val sp1 = DatagramPacket(rd, rd.size)
-//                    ds.receive(sp1)
 
                     val msg = br.readLine().trim { it <= ' ' }
 

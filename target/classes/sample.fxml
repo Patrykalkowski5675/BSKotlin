@@ -114,7 +114,7 @@
         <AnchorPane>
           <children>
             <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Settings" textAlignment="CENTER" textFill="$x2" wrapText="false" />
-                  <TextField fx:id="iPText" layoutX="20.0" layoutY="80.0" prefHeight="25.0" prefWidth="184.0" promptText="Please enter adress IP" text="192.168.1.100" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
+                  <TextField fx:id="iPText" layoutX="20.0" layoutY="80.0" prefHeight="25.0" prefWidth="184.0" promptText="Please enter adress IP" style="-fx-background-radius: 0;" text="192.168.1.100" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
                   <Text layoutX="23.0" layoutY="68.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="IP of receiver:" />
                   <Button fx:id="bTApply" disable="true" layoutX="135.0" layoutY="483.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="69.0" style="-fx-background-radius: 0;" text="Apply" textAlignment="CENTER" AnchorPane.rightAnchor="17.0">
                      <effect>

@@ -1,6 +1,9 @@
 package com.example.demo.controller
 
 import com.example.demo.app.MyApp
+import com.example.demo.controller.client.TCPClientChatController
+import com.example.demo.controller.server.TCPServerChatController
+import com.example.demo.controller.transferfile.TCPSenderFileSendController
 import javafx.application.Platform
 import javafx.event.EventHandler
 import javafx.fxml.FXML
@@ -13,6 +16,7 @@ import javafx.scene.text.Text
 import javafx.stage.FileChooser
 import javafx.stage.Stage
 import tornadofx.FX.Companion.primaryStage
+import java.io.File
 import java.net.URL
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -40,18 +44,20 @@ class Controller : Initializable {
 
     private val queue = ConcurrentLinkedQueue<String>()
     private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+    lateinit var file : File
 
     companion object {
         var nameUserFlag = true
         var namePartnerFlag = true
+
+        enum class Modes {
+            EBC,
+            CBC,
+            CFB,
+            OFB,
+        }
     }
 
-    enum class Modes {
-        EBC,
-        CBC,
-        OTB,
-        ABC,
-    }
 
     @FXML
     override fun initialize(location: URL?, resources: ResourceBundle?) {
@@ -64,7 +70,11 @@ class Controller : Initializable {
         initChat()
         initTextFieldEnterText()
         initFnOnClose()
+        initSendButton()
+    }
 
+    private fun initSendButton() {
+        bTSend.setOnAction { TCPSenderFileSendController.sendFile(file, cBMode, progressBar) }
     }
 
     private fun initFnOnClose(){
@@ -81,49 +91,7 @@ class Controller : Initializable {
             else ->println("Unknown parameter")
         }
 
-            /*
-            Thread {
-                val ss = ServerSocket(888)
-                val s = ss.accept()
 
-                textAreaChat.appendText("User join to chat" + '\n')
-
-                val ps = PrintStream(s.getOutputStream())
-                val br = BufferedReader(InputStreamReader(s.getInputStream()))
-
-                try {
-                    while (true) {
-                        var str: String?
-
-                        while (br.readLine().also { str = it } != null) {
-                            textAreaChat.appendText(dtf.format(LocalDateTime.now()) + " -> " + str + '\n')
-
-                            println(str)
-
-                            if (!queue.isEmpty()) {
-                                ps.println(queue.poll())
-                            } else {
-                                println("pusto")
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    ps.close()
-                    br.close()
-                    ss.close()
-                    s.close()
-                    initChat()
-                } finally {
-                    ps.close()
-                    br.close()
-                    ss.close()
-                    s.close()
-
-                    textAreaChat.appendText("User left chat" + '\n')
-                    println("koniec")
-                }
-            }.start()
-*/
     }
 
     private fun initTextFieldEnterText() {
@@ -147,7 +115,7 @@ class Controller : Initializable {
     }
 
     private fun initRadioBox() {
-        cBMode.items.addAll(Modes.EBC.name, Modes.CBC.name, Modes.OTB.name, Modes.ABC.name)
+        cBMode.items.addAll(Modes.EBC.name, Modes.CBC.name, Modes.CFB .name, Modes.OFB.name)
         cBMode.value = Modes.EBC.name
         cBMode.setOnAction { println(cBMode.selectionModel.selectedItem) }
     }
@@ -176,7 +144,7 @@ class Controller : Initializable {
     private fun initButtonChooseFile() {
         bTChoose.setOnAction {
             val fileChooser = FileChooser()
-            val file = fileChooser.showOpenDialog(primaryStage)
+            file = fileChooser.showOpenDialog(primaryStage)
 
             if (file != null) {
                 tFFile.text = file.name

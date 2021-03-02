@@ -1,66 +1,69 @@
-package com.example.demo.controller
+package com.example.demo.controller.client
 
 import com.example.demo.app.MyApp
+import com.example.demo.controller.Controller
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
-import java.lang.StringBuilder
-import java.net.DatagramPacket
-import java.net.DatagramSocket
-import java.net.InetAddress
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.net.Socket
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentLinkedQueue
 
-object UDPClientChatController {
+
+object TCPClientChatController {
 
     private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-    val ds = DatagramSocket(5334)
-    val ip = InetAddress.getLocalHost()
-
 
     fun initClientChat(queue: ConcurrentLinkedQueue<String>, textAreaChat: TextArea, iPText: TextField) {
 
         iPText.text = MyApp.ip
 
-
-
         println("Running")
         println("Client is Up....")
 
+        lateinit var s : Socket
+        lateinit var pwrite: PrintWriter
+        lateinit var br : BufferedReader
+
         var threadSend = Thread {
+            var sd: String
             try {
                 while (true) {
-                    var sd = ByteArray(1000)
-
                     while (queue.isEmpty());
-                    sd = queue.poll().toByteArray()
-
-                    val sp = DatagramPacket(sd, sd.size, ip, 1234)
-                    ds.send(sp)
-
+                    sd = queue.poll()
+//                    dos.writeBytes(sd);
+                    pwrite.println(sd);       // sending to server
+                    pwrite.flush();
+                    print(sd)
                 }
             } catch (e: Exception) {
+                pwrite.close()
                 println("Exception occured");
-            }
-            finally {
-                ds.close()
             }
         }
 
         var threadRecive = Thread {
             try {
+                s = Socket("localhost", 5335)
+                pwrite = PrintWriter(s.getOutputStream(), true)
+                br = BufferedReader(InputStreamReader(s.getInputStream()))
+                threadSend.start()
+                textAreaChat.appendText("Successfully connected with server")
                 while (true) {
                     val rd = ByteArray(1000)
 
-                    val sp1 = DatagramPacket(rd, rd.size)
-                    ds.receive(sp1)
+//                    val sp1 = DatagramPacket(rd, rd.size)
+//                    ds.receive(sp1)
 
-                    val msg = String(rd).trim { it <= ' ' }
+                    val msg =  br.readLine().trim { it <= ' ' }
                     println("Server: $msg")
 
                     var sB = StringBuilder()
                     if (Controller.namePartnerFlag) {
-                        sB.append("\tClient:\n")
+                        sB.append("\tServer:\n")
                         Controller.namePartnerFlag = false
                         Controller.nameUserFlag = true
                     }
@@ -73,14 +76,14 @@ object UDPClientChatController {
 
                 }
             } catch (e: Exception) {
-                System.out.println("Exception occured")
-            }
-            finally {
-                ds.close()
+                textAreaChat.appendText("*Server is not available, please wait, reconnecting in 5 second...\n")
+                Thread.sleep(5000)
+                initClientChat(queue, textAreaChat, iPText)
             }
         }
 
-        threadSend.start()
+
         threadRecive.start()
+
     }
 }
