@@ -1,5 +1,6 @@
 package com.example.demo.app
 
+import com.example.demo.controller.Controller
 import com.example.demo.view.MainView
 import javafx.application.Application
 import javafx.stage.Stage
@@ -12,15 +13,11 @@ fun main(args: Array<String>) {
 }
 
 class MyApp : App(MainView::class) {
-    companion object{
-        lateinit var param : String
-        lateinit var ip : String
-    }
     override fun start(stage: Stage) {
-        param = parameters.unnamed[0]
-        ip = parameters.unnamed[1]
-        println(param)
-        println(ip)
+        Controller.whoiam = parameters.unnamed[0]
+        Controller.ip = parameters.unnamed[1]
+        println(parameters.unnamed[0])
+        println(parameters.unnamed[1])
         super.start(stage)
     }
 

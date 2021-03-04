@@ -21,7 +21,7 @@ object UDPClientChatController {
 
     fun initClientChat(queue: ConcurrentLinkedQueue<String>, textAreaChat: TextArea, iPText: TextField) {
 
-        iPText.text = MyApp.ip
+//        iPText.text = MyApp.ip
 
 
 
