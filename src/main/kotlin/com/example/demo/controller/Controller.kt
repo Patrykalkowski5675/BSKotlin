@@ -1,9 +1,11 @@
 package com.example.demo.controller
 
-import com.example.demo.controller.client.TCPClientChatController
-import com.example.demo.controller.server.TCPServerChatController
-import com.example.demo.controller.transferfile.TCPReciverFileSendController
-import com.example.demo.controller.transferfile.TCPSenderFileSendController
+import com.example.demo.controller.TCP.chat.TCPChatController
+import com.example.demo.controller.TCP.chat.TCPClientChatController
+import com.example.demo.controller.TCP.chat.TCPServerChatController
+import com.example.demo.controller.TCP.transferfile.TCPReciverFileSendController
+import com.example.demo.controller.TCP.transferfile.TCPSenderFileSendController
+import com.example.demo.controller.UDP.chat.UDPChatController
 import javafx.application.Platform
 import javafx.event.EventHandler
 import javafx.fxml.FXML
@@ -24,7 +26,6 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.collections.ArrayList
-import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 
 
@@ -32,6 +33,7 @@ class Controller : Initializable {
 
     @FXML
     lateinit var iPText: TextField
+    lateinit var tIPHint: Text
     lateinit var textAreaChat: TextArea
     lateinit var bTChoose: Button
     lateinit var bTSend: Button
@@ -62,6 +64,8 @@ class Controller : Initializable {
     private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
     var listModeButtons = ArrayList<Button>()
     var file: File? = null
+    lateinit var handleUDPChat: UDPChatController
+    lateinit var handleTCPChat: TCPChatController
 
     companion object {
         var nameUserFlag = true
@@ -100,15 +104,208 @@ class Controller : Initializable {
         initProtocolButtons()
         initTransferButtons()
         initModeButtons()
+        initIPTextField()
+    }
+
+
+    //////////////////////// FILECHOOSE
+
+    private fun initSendButton() {
+        bTSend.setOnAction {
+            queue.add("_Messag5eT|${fileSize}|${fileName}")
+            leftPane.isDisable = true
+        }
+    }
+
+    internal fun changesPostReciveFile() {
+        queue.add("*Transfer file ${fileName} successfully\n")
+        changeGUIforFileChoice()
+    }
+
+    internal fun changeGUIforFileTransfer(array: List<String>) {
+        bTChoose.isVisible = false
+        bTDecline.isVisible = true
+        bTSend.isVisible = false
+        bTAccept.isVisible = true
+
+        tSize.text = Utility.calculateSizeFile(array[1].toLong())
+        tFFile.text = array[2]
+        tSelectedFile.text = "File to transfer:"
+    }
+
+    internal fun changeGUIforFileChoice() {
+        bTChoose.isVisible = true
+        bTDecline.isVisible = false
+        bTSend.isVisible = true
+        bTAccept.isVisible = false
+
+        tFFile.text = "Size of file:"
+        tSize.text = ""
+        tSelectedFile.text = "Selected file:"
+    }
+
+    private fun initButtonChooseFile() {
+        bTChoose.setOnAction {
+            val fileChooser = FileChooser()
+            file = fileChooser.showOpenDialog(primaryStage)
+
+            if (file != null) {
+                tFFile.text = file!!.name
+                fileName = file!!.name
+                fileSize = file!!.length()
+
+
+                tSize.text = Utility.calculateSizeFile(fileSize)
+
+                bTSend.isDisable = false
+                progressBar.progress = -1.0
+            }
+        }
+    }
+
+    //////////////////////// CHAT
+
+    internal fun analizeHiddenMessage(msg: String): Boolean {
+
+        if (msg.length < 10) return false
+
+        val tmpSubString = msg.subSequence(0, 10)
+        print(tmpSubString)
+
+        when (tmpSubString) {
+            "_Messag5eT" -> changeGUIforFileTransfer(msg.split('|'))
+            "_Messag5eY" -> TCPSenderFileSendController.sendFile(file!!, mode, progressBar, progressText, this)
+            "_Messag5eN" -> changeGUIforFileChoice()
+            "_Messag6e1" -> Platform.runLater {
+                changeUIButtonsMode(0)
+            }
+            "_Messag6e2" -> Platform.runLater {
+                changeUIButtonsMode(1)
+            }
+            "_Messag6e3" -> Platform.runLater {
+                changeUIButtonsMode(2)
+            }
+            "_Messag6e4" -> Platform.runLater {
+                changeUIButtonsMode(3)
+            }
+            "_Messag7e1" -> clickOnTCPButton()
+            "_Messag7e2" -> clickOnUDPButton()
+            else -> return false
+
+        }
+        return true
+    }
+
+    private fun initChat() {
+        when (whoiam) {
+            "Server" -> {
+                handleTCPChat = TCPServerChatController(queue, queueReceive, this)
+                handleTCPChat.initChat()
+                handleUDPChat = UDPChatController(11111, 22222, queue, queueReceive, this)
+//                handleUDPChat.initChat()
+
+                iPText.text = "Server (Unable change IP)"
+                iPText.isEditable = false
+                iPText.isMouseTransparent = true
+            }
+            "Client" -> {
+                handleTCPChat = TCPClientChatController(queue, queueReceive, this)
+                handleTCPChat.initChat()
+                handleUDPChat = UDPChatController(22222, 11111, queue, queueReceive, this)
+//                handleUDPChat.initChat()
+                iPText.text = ip
+            }
+            else -> println("Unknown parameter")
+        }
+
+        Thread {
+            var msg = ""
+            while (true) {
+                if (!queueReceive.isEmpty()) {
+                    msg = queueReceive.poll()
+
+                    // function returns false if in msg in no hidden message
+                    if (!analizeHiddenMessage(msg)) {
+
+                        val sB = StringBuilder()
+//
+
+                        if (msg[0] != '*') {
+                            if (namePartnerFlag) {
+                                sB.append(protocol.name)
+                                when (whoiam) {
+                                    "Server" -> sB.append("\tClient:\n")
+                                    "Client" -> sB.append("\tServer:\n")
+                                }
+                                namePartnerFlag = false
+                                nameUserFlag = true
+                            }
+                            sB.append(dtf.format(LocalDateTime.now()))
+                                    .append(" -> ")
+                        }
+
+                        sB.append(msg)
+                                .append('\n')
+
+                        Platform.runLater { textAreaChat.appendText(sB.toString()) }
+                    }
+                }
+            }
+        }.start()
+    }
+
+    internal fun syncSettingBetweenUsersOnStartChat() {
+        when (mode) {
+            Modes.EBC -> queue.add("_Messag6e1")
+            Modes.CBC -> queue.add("_Messag6e2")
+            Modes.CFB -> queue.add("_Messag6e3")
+            Modes.OFB -> queue.add("_Messag6e4")
+        }
+
+//        when (protocol) {
+//            Protocols.TCP -> queue.add("_Messag7e1")
+//            Protocols.UDP -> queue.add("_Messag7e2")
+//        }
+    }
+
+    private fun initTextFieldEnterText() {
+        tFEnterText.setOnAction {
+            if (!tFEnterText.text.isNullOrBlank()) {
+                queue.add(tFEnterText.text)
+                if (nameUserFlag) {
+                    textAreaChat.appendText(protocol.name + "\t" + whoiam + ":\n" + dtf.format(LocalDateTime.now()) + " -> " + tFEnterText.text + '\n')
+                    nameUserFlag = false
+                    namePartnerFlag = true
+                } else
+                    textAreaChat.appendText(dtf.format(LocalDateTime.now()) + " -> " + tFEnterText.text + '\n')
+                tFEnterText.clear()
+            }
+        }
+    }
+
+    //////////////////////// SETTING
+
+    private fun initIPTextField() {
+        iPText.setOnAction {
+            print(iPText.text)
+            ip = iPText.text
+            tIPHint.isVisible = false
+        }
+        iPText.onKeyPressed = EventHandler {
+//            tIPHint.isVisible = iPText.text.length <= 16
+            if (iPText.text.length > 15) tIPHint.text = "Invalid IP"
+            else tIPHint.text = "Enter to save"
+        }
+        iPText.onMousePressed = EventHandler { tIPHint.isVisible = true }
     }
 
     private fun changeUIButtonsMode(index: Int) {
 
         when (index) {
-            1 -> mode = Modes.EBC
-            2 -> mode = Modes.CBC
-            3 -> mode = Modes.CFB
-            4 -> mode = Modes.OFB
+            0 -> mode = Modes.EBC
+            1 -> mode = Modes.CBC
+            2 -> mode = Modes.CFB
+            3 -> mode = Modes.OFB
         }
 
         for ((i, button) in listModeButtons.withIndex()) {
@@ -164,15 +361,19 @@ class Controller : Initializable {
 
     private fun initProtocolButtons() {
         bTTCP.setOnAction {
-            clickOnTCPButton()
-            queue.add("_Messag7e1")
-            enableApplyButton()
+            if (protocol != Protocols.TCP) {
+                queue.add("_Messag7e1")
+                clickOnTCPButton()
+                enableApplyButton()
+            }
         }
 
         bTUDP.setOnAction {
-            clickOnUDPButton()
-            queue.add("_Messag7e2")
-            enableApplyButton()
+            if (protocol != Protocols.UDP) {
+                queue.add("_Messag7e2")
+                clickOnUDPButton()
+                enableApplyButton()
+            }
         }
     }
 
@@ -180,12 +381,20 @@ class Controller : Initializable {
         bTTCP.style = "-fx-background-color:silver; -fx-background-radius : 0;"
         bTUDP.style = "-fx-background-radius : 0;"
         protocol = Protocols.TCP
+//        Thread.sleep(500)
+
+        handleUDPChat.stop()
+        handleTCPChat.initChat()
     }
 
     private fun clickOnUDPButton() {
         bTTCP.style = "-fx-background-radius : 0;"
         bTUDP.style = "-fx-background-color:silver; -fx-background-radius : 0;"
         protocol = Protocols.UDP
+//        Thread.sleep(500)
+        handleTCPChat.stop()
+        handleUDPChat.initChat()
+
     }
 
     private fun enableApplyButton() {
@@ -198,143 +407,6 @@ class Controller : Initializable {
         bTApply.isDisable = true
     }
 
-    internal fun analizeHiddenMessage(msg: String): Boolean {
-
-        if (msg.length < 10) return false
-
-        val tmpSubString = msg.subSequence(0, 10)
-        print(tmpSubString)
-
-        when (tmpSubString) {
-            "_Messag5eT" -> changeGUIforFileTransfer(msg.split('|'))
-            "_Messag5eY" -> TCPSenderFileSendController.sendFile(file!!, mode, progressBar, progressText, this)
-            "_Messag5eN" -> changeGUIforFileChoice()
-            "_Messag6e1" -> Platform.runLater {
-                changeUIButtonsMode(0)
-            }
-            "_Messag6e2" -> Platform.runLater {
-                changeUIButtonsMode(1)
-            }
-            "_Messag6e3" -> Platform.runLater {
-                changeUIButtonsMode(2)
-            }
-            "_Messag6e4" -> Platform.runLater {
-                changeUIButtonsMode(3)
-            }
-            "_Messag7e1" -> clickOnTCPButton()
-            "_Messag7e2" -> clickOnUDPButton()
-            else -> return false
-
-        }
-        return true
-    }
-
-    internal fun changesPostReciveFile() {
-        queue.add("*Transfer file ${fileName} successfully\n")
-        changeGUIforFileChoice()
-    }
-
-    internal fun changeGUIforFileTransfer(array: List<String>) {
-        bTChoose.isVisible = false
-        bTDecline.isVisible = true
-        bTSend.isVisible = false
-        bTAccept.isVisible = true
-
-        tSize.text = calculateSizeFile(array[1].toLong())
-        tFFile.text = array[2]
-        tSelectedFile.text = "File to transfer:"
-    }
-
-    internal fun changeGUIforFileChoice() {
-        bTChoose.isVisible = true
-        bTDecline.isVisible = false
-        bTSend.isVisible = true
-        bTAccept.isVisible = false
-
-        tFFile.text = "Size of file:"
-        tSize.text = ""
-        tSelectedFile.text = "Selected file:"
-    }
-
-    private fun initSendButton() {
-        bTSend.setOnAction {
-            queue.add("_Messag5eT|${fileSize}|${fileName}")
-            leftPane.isDisable = true
-        }
-    }
-
-    private fun initFnOnClose() {
-        primaryStage.onCloseRequest = EventHandler {
-            Platform.exit()
-            exitProcess(0)
-        }
-    }
-
-    private fun initChat() {
-        when (whoiam) {
-            "Server" -> {
-                TCPServerChatController.initServerChat(queue, queueReceive)
-                iPText.text = "Server (Unable change IP)"
-                iPText.isEditable = false
-                iPText.isMouseTransparent = true
-            }
-            "Client" -> {
-                TCPClientChatController.initClientChat(queue, queueReceive)
-                iPText.text = ip
-            }
-            else -> println("Unknown parameter")
-        }
-
-        Thread {
-            var msg = ""
-            while (true) {
-                if (!queueReceive.isEmpty()) {
-                    msg = queueReceive.poll()
-
-                    // function returns false if in msg in no hidden message
-                    if (!analizeHiddenMessage(msg)) {
-
-                        val sB = StringBuilder()
-//
-
-                        if (msg[0] != '*'){
-                            if (namePartnerFlag){
-                                when (whoiam) {
-                                    "Server" -> sB.append("\tClient:\n")
-                                    "Client" -> sB.append("\tServer:\n")
-                                }
-                                namePartnerFlag = false
-                                nameUserFlag = true
-                            }
-                            sB.append(dtf.format(LocalDateTime.now()))
-                                    .append(" -> ")
-                        }
-
-                        sB.append(msg)
-                                .append('\n')
-
-                        Platform.runLater { textAreaChat.appendText(sB.toString()) }
-                    }
-                }
-            }
-        }.start()
-    }
-
-    private fun initTextFieldEnterText() {
-        tFEnterText.setOnAction {
-            if (!tFEnterText.text.isNullOrBlank()) {
-                queue.add(tFEnterText.text)
-                if (nameUserFlag) {
-                    textAreaChat.appendText('\t' + whoiam + ":\n" + dtf.format(LocalDateTime.now()) + " -> " + tFEnterText.text + '\n')
-                    nameUserFlag = false
-                    namePartnerFlag = true
-                } else
-                    textAreaChat.appendText(dtf.format(LocalDateTime.now()) + " -> " + tFEnterText.text + '\n')
-                tFEnterText.clear()
-            }
-        }
-    }
-
     private fun initButtonApply() {
         bTApply.setOnAction {
             println(iPText.text)
@@ -342,6 +414,13 @@ class Controller : Initializable {
             bTApply.isDisable = true
         }
     }
+
+    internal fun setSettingToTCP(){
+        queueReceive.add("*Set protocol to TCP")
+        clickOnTCPButton()
+    }
+
+    //////////////////////// MENU
 
     private fun initMenu() {
         mHelp.setOnAction {
@@ -361,39 +440,13 @@ class Controller : Initializable {
 
     }
 
-    private fun initButtonChooseFile() {
-        bTChoose.setOnAction {
-            val fileChooser = FileChooser()
-            file = fileChooser.showOpenDialog(primaryStage)
-
-            if (file != null) {
-                tFFile.text = file!!.name
-                fileName = file!!.name
-                fileSize = file!!.length()
-
-
-                tSize.text = calculateSizeFile(fileSize)
-
-                bTSend.isDisable = false
-                progressBar.progress = -1.0
-            }
+    private fun initFnOnClose() {
+        primaryStage.onCloseRequest = EventHandler {
+            if (protocol == Protocols.UDP) queue.add("*User has left the chat")
+            Platform.exit()
+            exitProcess(0)
         }
     }
 
-    private fun calculateSizeFile(size: Long): String {
-        var fileSizeString = ""
-        var localFileSize: Double = size.toDouble()
 
-        if ((localFileSize / (1024 * 1024 * 1024)).roundToInt() > 0) {
-            fileSizeString = ((localFileSize / (1024 * 1024 * 1024) * 100).roundToInt() / 100.0).toString() + " GB"
-        } else if ((localFileSize / (1024 * 1024)).roundToInt() > 0) {
-            fileSizeString = ((localFileSize / (1024 * 1024) * 100).roundToInt() / 100.0).toString() + " MB"
-        } else if ((localFileSize / (1024)).roundToInt() > 0) {
-            fileSizeString = ((localFileSize / (1024) * 100).roundToInt() / 100.0).toString() + " KB"
-        } else {
-            fileSizeString = ((localFileSize * 100).roundToInt() / 100.0).toString() + " B"
-        }
-
-        return "Size of file: " + fileSizeString
-    }
 }

@@ -1,8 +1,7 @@
-package com.example.demo.controller.transferfile
+package com.example.demo.controller.TCP.transferfile
 
 import com.example.demo.controller.Controller
 import javafx.application.Platform
-import javafx.scene.control.ChoiceBox
 import javafx.scene.control.ProgressBar
 import javafx.scene.text.Text
 import java.io.BufferedInputStream
@@ -44,7 +43,6 @@ object TCPSenderFileSendController {
                 Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
                 Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
                 Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
-                else -> Cipher.getInstance("AES/ECB/PKCS5Padding")
             }
 
             val secretKey: SecretKey = SecretKeySpec(encryptionKeyBytes, "AES")

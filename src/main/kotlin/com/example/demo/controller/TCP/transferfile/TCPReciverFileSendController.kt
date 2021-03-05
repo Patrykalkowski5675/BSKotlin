@@ -1,4 +1,4 @@
-package com.example.demo.controller.transferfile
+package com.example.demo.controller.TCP.transferfile
 
 import com.example.demo.controller.Controller
 import javafx.application.Platform
