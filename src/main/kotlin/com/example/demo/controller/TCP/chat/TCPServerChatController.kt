@@ -61,7 +61,8 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,val queue
                 println("Server is Up....")
 //                ss = ServerSocket(5334)
                 s = ss.accept()
-                Platform.runLater { controller.syncSettingBetweenUsersOnStartChat() }
+//                Platform.runLater { controller.syncSettingBetweenUsersOnStartChat() }
+//               controller.syncSettingBetweenUsersOnStartChat()
                 flagStart = true
                 queueReceive.add("*User join to chat TCP")
                 queueReceive.add("*Sync settings TCP")

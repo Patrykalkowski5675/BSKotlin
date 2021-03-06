@@ -33,22 +33,28 @@
 -->
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.Group?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.Blend?>
+<?import javafx.scene.effect.BoxBlur?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
+<?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
@@ -70,7 +76,7 @@
     </MenuBar>
     <SplitPane dividerPositions="0.2505567928730512, 0.7505567928730512" focusTraversable="true" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
       <items>
-        <AnchorPane>
+        <AnchorPane fx:id="leftPane">
           <children>
             <Label alignment="CENTER" layoutX="14.0" layoutY="14.0" minWidth="60.0" prefWidth="-1.0" style="&#10;" text="Send file" textAlignment="CENTER" wrapText="false">
               <font>
@@ -111,25 +117,40 @@
         </AnchorPane>
         <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
           <content>
-            <AnchorPane id="Content" minHeight="-1.0" minWidth="-1.0" prefHeight="547.0" prefWidth="443.0">
+            <AnchorPane id="Content" fx:id="centrePane" minHeight="-1.0" minWidth="-1.0" prefHeight="547.0" prefWidth="443.0">
               <children>
                 <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Chat" textAlignment="CENTER" textFill="$x2" wrapText="false" />
                         <TextField fx:id="tFEnterText" layoutX="14.0" layoutY="481.0" prefHeight="50.0" prefWidth="415.0" promptText="Enter your message and click enter" style="-fx-background-radius: 5;" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
-                        <TextArea fx:id="textAreaChat" editable="false" layoutX="14.0" layoutY="49.0" prefHeight="425.0" prefWidth="401.0" promptText="Say Hello" style="-fx-background-radius: 0;" wrapText="true" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="15.0" />
+                        <TextArea fx:id="textAreaChat" editable="false" layoutX="14.0" layoutY="49.0" prefHeight="425.0" prefWidth="401.0" promptText="No user is connected" style="-fx-background-radius: 0;" wrapText="true" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="15.0" />
+                        <Group fx:id="groupPassword" layoutX="35.0" layoutY="116.0" visible="false">
+                           <children>
+                              <Rectangle fill="#e8e8e8" height="228.0" stroke="#ffd07e" strokeType="OUTSIDE" strokeWidth="6.0" width="372.0" />
+                              <Button fx:id="buttonPassword" layoutX="247.0" layoutY="145.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="Apply" textAlignment="CENTER" wrapText="true">
+                                 <effect>
+                                    <Blend mode="HARD_LIGHT" />
+                                 </effect>
+                              </Button>
+                              <Text layoutX="27.0" layoutY="35.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Password:" />
+                              <PasswordField fx:id="textPassword" layoutX="27.0" layoutY="60.0" prefHeight="37.0" prefWidth="201.0" promptText="Enter the password" style="-fx-background-radius: 0;" />
+                              <ImageView fx:id="image" fitHeight="38.0" fitWidth="37.0" layoutX="185.0" layoutY="87.0" pickOnBounds="true" preserveRatio="true">
+                                 <image>
+                                    <Image url="file:/lock.png" />
+                                 </image>
+                                 <effect>
+                                    <BoxBlur height="0.0" width="0.0" />
+                                 </effect>
+                              </ImageView>
+                           </children>
+                        </Group>
               </children>
             </AnchorPane>
           </content>
         </ScrollPane>
-        <AnchorPane fx:id="leftPane" minWidth="-Infinity">
+        <AnchorPane fx:id="rightPane" minWidth="-Infinity">
           <children>
             <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Settings" textAlignment="CENTER" textFill="$x2" wrapText="false" />
                   <TextField fx:id="iPText" layoutX="20.0" layoutY="80.0" prefHeight="25.0" prefWidth="184.0" promptText="Please enter adress IP" style="-fx-background-radius: 0;" text="192.168.1.100" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
                   <Text layoutX="23.0" layoutY="68.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="IP of receiver:" />
-                  <Button fx:id="bTApply" disable="true" layoutX="135.0" layoutY="483.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="69.0" style="-fx-background-radius: 0;" text="Apply" textAlignment="CENTER" visible="false" AnchorPane.rightAnchor="17.0">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
                   <Text layoutX="23.0" layoutY="126.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Mode:" />
                   <Button fx:id="bTTCP" layoutX="15.0" layoutY="200.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0; -fx-background-color: silver;" text="TCP" textAlignment="CENTER" wrapText="true">
                      <effect>

@@ -6,13 +6,17 @@ import com.example.demo.controller.TCP.chat.TCPServerChatController
 import com.example.demo.controller.TCP.transferfile.TCPReciverFileSendController
 import com.example.demo.controller.TCP.transferfile.TCPSenderFileSendController
 import com.example.demo.controller.UDP.chat.UDPChatController
+import com.example.demo.tools.GenerateRSAKeys
 import javafx.application.Platform
 import javafx.event.EventHandler
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.geometry.Pos
+import javafx.scene.Group
 import javafx.scene.Scene
 import javafx.scene.control.*
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.StackPane
 import javafx.scene.text.Text
@@ -21,6 +25,10 @@ import javafx.stage.Stage
 import tornadofx.FX.Companion.primaryStage
 import java.io.File
 import java.net.URL
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.security.PrivateKey
+import java.security.PublicKey
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -37,7 +45,6 @@ class Controller : Initializable {
     lateinit var textAreaChat: TextArea
     lateinit var bTChoose: Button
     lateinit var bTSend: Button
-    lateinit var bTApply: Button
     lateinit var bTAccept: Button
     lateinit var bTDecline: Button
     lateinit var bTTCP: Button
@@ -51,14 +58,19 @@ class Controller : Initializable {
     lateinit var tSize: Text
     lateinit var mHelp: MenuItem
     lateinit var mQuit: MenuItem
-    lateinit var cBMode: ChoiceBox<String>
     lateinit var progressBar: ProgressBar
     lateinit var progressText: Text
     lateinit var tSelectedFile: Text
+    lateinit var rightPane: AnchorPane
     lateinit var leftPane: AnchorPane
+    lateinit var textPassword: PasswordField
+    lateinit var groupPassword: Group
+    lateinit var buttonPassword: Button
+    lateinit var image: ImageView
+
 
     private var fileSize: Long = 0L
-    private var fileName = ""
+    private var fileName = "hmmm.txt"
     private val queue = ConcurrentLinkedQueue<String>()
     private val queueReceive = ConcurrentLinkedQueue<String>()
     private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -66,6 +78,8 @@ class Controller : Initializable {
     var file: File? = null
     lateinit var handleUDPChat: UDPChatController
     lateinit var handleTCPChat: TCPChatController
+
+    lateinit var keys : Pair<PrivateKey, PublicKey>
 
     companion object {
         var nameUserFlag = true
@@ -96,7 +110,6 @@ class Controller : Initializable {
 
         initButtonChooseFile()
         initMenu()
-        initButtonApply()
         initChat()
         initTextFieldEnterText()
         initFnOnClose()
@@ -105,6 +118,34 @@ class Controller : Initializable {
         initTransferButtons()
         initModeButtons()
         initIPTextField()
+        initWindowsForPassword()
+
+
+    }
+
+    private fun initWindowsForPassword() {
+        fun changeVisibility(bool : Boolean){
+            leftPane.isDisable = bool
+            tFEnterText.isDisable = bool
+            textAreaChat.isDisable = bool
+            rightPane.isDisable = bool
+            groupPassword.isVisible = bool
+        }
+
+        if (whoiam == "Client") return
+
+        changeVisibility(true)
+        image.image = Image(javaClass.classLoader.getResource("lock.png")?.toURI()?.toString())
+
+        buttonPassword.setOnAction {
+            changeVisibility(false)
+            val str = textPassword.text
+            val digest = MessageDigest.getInstance("SHA-256")
+            val hash = digest.digest(str.toByteArray(StandardCharsets.UTF_8))
+
+
+            keys = GenerateRSAKeys(hash).getKeys()
+        }
     }
 
 
@@ -113,12 +154,14 @@ class Controller : Initializable {
     private fun initSendButton() {
         bTSend.setOnAction {
             queue.add("_Messag5eT|${fileSize}|${fileName}")
-            leftPane.isDisable = true
+            rightPane.isDisable = true
+            progressText.text = "Waiting for response"
         }
     }
 
     internal fun changesPostReciveFile() {
-        queue.add("*Transfer file ${fileName} successfully\n")
+        queue.add("*Transfer file ${fileName} successfully")
+        queueReceive.add("*Transfer file ${fileName} successfully")
         changeGUIforFileChoice()
     }
 
@@ -128,20 +171,35 @@ class Controller : Initializable {
         bTSend.isVisible = false
         bTAccept.isVisible = true
 
+//        progressBar.progress = -1.0
+
         tSize.text = Utility.calculateSizeFile(array[1].toLong())
         tFFile.text = array[2]
         tSelectedFile.text = "File to transfer:"
+
+        fileName = array[2]
+        fileSize = array[1].toLong()
+
+        rightPane.isDisable = true
     }
 
     internal fun changeGUIforFileChoice() {
         bTChoose.isVisible = true
         bTDecline.isVisible = false
         bTSend.isVisible = true
+        bTSend.isDisable = true
         bTAccept.isVisible = false
 
-        tFFile.text = "Size of file:"
-        tSize.text = ""
+        tFFile.text = ""
+        tSize.text = "Size of file:"
         tSelectedFile.text = "Selected file:"
+
+        Platform.runLater {
+            progressText.text = "Sending is no init"
+            progressBar.progress = 0.0
+        }
+
+        rightPane.isDisable = false
     }
 
     private fun initButtonChooseFile() {
@@ -158,10 +216,29 @@ class Controller : Initializable {
                 tSize.text = Utility.calculateSizeFile(fileSize)
 
                 bTSend.isDisable = false
-                progressBar.progress = -1.0
+                Platform.runLater {
+                    progressBar.progress = -1.0
+                    progressText.text = "Waiting for send"
+                }
+
             }
         }
     }
+
+    private fun initTransferButtons() {
+        bTAccept.setOnAction {
+            queue.add("_Messag5eY")
+            queue.add("*User accepted the file")
+            TCPReciverFileSendController.reciveFile(mode, progressBar, fileName, fileSize, progressText, queue, queueReceive)
+            rightPane.isDisable = true
+        }
+        bTDecline.setOnAction {
+            queue.add("_Messag5eN")
+            queue.add("*User rejected the file")
+            changeGUIforFileChoice()
+        }
+    }
+
 
     //////////////////////// CHAT
 
@@ -174,7 +251,7 @@ class Controller : Initializable {
 
         when (tmpSubString) {
             "_Messag5eT" -> changeGUIforFileTransfer(msg.split('|'))
-            "_Messag5eY" -> TCPSenderFileSendController.sendFile(file!!, mode, progressBar, progressText, this)
+            "_Messag5eY" -> TCPSenderFileSendController.sendFile(file!!, mode, progressBar, progressText, queue, queueReceive)
             "_Messag5eN" -> changeGUIforFileChoice()
             "_Messag6e1" -> Platform.runLater {
                 changeUIButtonsMode(0)
@@ -229,8 +306,7 @@ class Controller : Initializable {
 
                         val sB = StringBuilder()
 //
-
-                        if (msg[0] != '*') {
+                        if (msg.isNotEmpty() && msg[0] != '*') {
                             if (namePartnerFlag) {
                                 sB.append(protocol.name)
                                 when (whoiam) {
@@ -281,6 +357,15 @@ class Controller : Initializable {
                 tFEnterText.clear()
             }
         }
+
+        tFEnterText.textProperty().addListener { _, _, newValue ->
+            if (newValue.length > 512) {
+                val s = newValue.substring(0..512)
+                tFEnterText.text = s
+            }
+        }
+
+
     }
 
     //////////////////////// SETTING
@@ -327,44 +412,28 @@ class Controller : Initializable {
         bTEBC.setOnAction {
             queue.add("_Messag6e1")
             changeUIButtonsMode(0)
-            enableApplyButton()
         }
         bTCBC.setOnAction {
             queue.add("_Messag6e2")
             changeUIButtonsMode(1)
-            enableApplyButton()
         }
         bTCFB.setOnAction {
             queue.add("_Messag6e3")
             changeUIButtonsMode(2)
-            enableApplyButton()
         }
         bTOFB.setOnAction {
             queue.add("_Messag6e4")
             changeUIButtonsMode(3)
-            enableApplyButton()
         }
 
     }
 
-    private fun initTransferButtons() {
-        bTAccept.setOnAction {
-            queue.add("_Messag5eY")
-            TCPReciverFileSendController.reciveFile(cBMode, progressBar, fileName, fileSize, progressText, this)
-            leftPane.isDisable = true
-        }
-        bTDecline.setOnAction {
-            queue.add("_Messag5eN")
-            changeGUIforFileChoice()
-        }
-    }
 
     private fun initProtocolButtons() {
         bTTCP.setOnAction {
             if (protocol != Protocols.TCP) {
                 queue.add("_Messag7e1")
                 clickOnTCPButton()
-                enableApplyButton()
             }
         }
 
@@ -372,7 +441,6 @@ class Controller : Initializable {
             if (protocol != Protocols.UDP) {
                 queue.add("_Messag7e2")
                 clickOnUDPButton()
-                enableApplyButton()
             }
         }
     }
@@ -397,25 +465,8 @@ class Controller : Initializable {
 
     }
 
-    private fun enableApplyButton() {
-        bTApply.style = "-fx-background-color:LIGHTBLUE; -fx-background-radius : 0;"
-        bTApply.isDisable = false
-    }
 
-    private fun disableApplyButton() {
-        bTApply.style = "-fx-background-radius : 0;"
-        bTApply.isDisable = true
-    }
-
-    private fun initButtonApply() {
-        bTApply.setOnAction {
-            println(iPText.text)
-            bTApply.style = "-fx-background-radius : 0;"
-            bTApply.isDisable = true
-        }
-    }
-
-    internal fun setSettingToTCP(){
+    internal fun setSettingToTCP() {
         queueReceive.add("*Set protocol to TCP")
         clickOnTCPButton()
     }

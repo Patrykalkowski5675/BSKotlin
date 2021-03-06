@@ -9,6 +9,7 @@ import java.io.DataInputStream
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.net.Socket
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.crypto.Cipher
 import javax.crypto.CipherOutputStream
 import javax.crypto.SecretKey
@@ -19,7 +20,7 @@ import kotlin.math.roundToInt
 
 object TCPReciverFileSendController {
 
-    fun reciveFile(cBMode: ChoiceBox<String>, progressBar: ProgressBar, fileName: String, fileSize: Long, progressText: Text, controller: Controller) {
+    fun reciveFile(mode : Controller.Companion.Modes, progressBar: ProgressBar, fileName: String, fileSize: Long, progressText: Text, queue : ConcurrentLinkedQueue<String>, queueReceive : ConcurrentLinkedQueue<String>) {
 
         Thread {
             val encryptionKeyString = "thisisa128bitkey"
@@ -32,20 +33,21 @@ object TCPReciverFileSendController {
             val bufferSize = sock.receiveBufferSize
 
             val clientData = DataInputStream(sock.getInputStream())
-            println(fileName)
+            println("n"+fileName+"n")
             val os: OutputStream = FileOutputStream(fileName)
 
-            val cipher: Cipher = when (cBMode.value) {
-                Controller.Companion.Modes.EBC.name -> Cipher.getInstance("AES/ECB/PKCS5Padding")
-                Controller.Companion.Modes.CBC.name -> Cipher.getInstance("AES/CBC/PKCS5Padding")
-                Controller.Companion.Modes.CFB.name -> Cipher.getInstance("AES/CFB/PKCS5Padding")
-                Controller.Companion.Modes.OFB.name -> Cipher.getInstance("AES/OFB/PKCS5Padding")
+            /// CFB and OFB operate on 64-bit block by default
+            val cipher: Cipher = when (mode) {
+                Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
+                Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
+                Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
+                Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
                 else -> Cipher.getInstance("AES/ECB/PKCS5Padding")
             }
 
             val secretKey: SecretKey = SecretKeySpec(encryptionKeyBytes, "AES")
 
-            if (cBMode.value == Controller.Companion.Modes.EBC.name)
+            if (mode == Controller.Companion.Modes.EBC)
                 cipher.init(Cipher.DECRYPT_MODE, secretKey)
             else
                 cipher.init(Cipher.DECRYPT_MODE, secretKey, iv)
@@ -75,7 +77,9 @@ object TCPReciverFileSendController {
             Platform.runLater {
                 progressBar.progress = 1.0
                 progressText.text = "Completed"
-                controller.changesPostReciveFile()
+//                controller.changeGUIforFileChoice()
+                queue.add("*Transfer file $fileName successfully")
+                queueReceive.add("_Messag5eN")
             }
         }.start()
     }

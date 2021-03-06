@@ -8,6 +8,7 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.net.ServerSocket
+import java.util.concurrent.ConcurrentLinkedQueue
 import javax.crypto.Cipher
 import javax.crypto.CipherOutputStream
 import javax.crypto.SecretKey
@@ -18,7 +19,7 @@ import kotlin.math.roundToInt
 
 object TCPSenderFileSendController {
 
-    fun sendFile(file: File, mode : Controller.Companion.Modes, progressBar: ProgressBar, progressText: Text, controller: Controller) {
+    fun sendFile(file: File, mode : Controller.Companion.Modes, progressBar: ProgressBar, progressText: Text, queue : ConcurrentLinkedQueue<String>,queueReceive : ConcurrentLinkedQueue<String>) {
 
         val encryptionKeyString = "thisisa128bitkey"
         val encryptionKeyBytes = encryptionKeyString.toByteArray()
@@ -82,7 +83,9 @@ object TCPSenderFileSendController {
             Platform.runLater {
                 progressBar.progress = 1.0
                 progressText.text = "Completed"
-                controller.changesPostReciveFile()
+//                controller.changeGUIforFileChoice() // czasem wyrzucalo bledy
+                queue.add("*Transfer file ${file.name} successfully")
+                queueReceive.add("_Messag5eN")
             }
 //            }
         }.start()
