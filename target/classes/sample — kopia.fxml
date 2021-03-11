@@ -33,56 +33,50 @@
 -->
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.Group?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.Blend?>
+<?import javafx.scene.effect.BoxBlur?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
+<?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.demo.controller.Controller">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>
         <Menu mnemonicParsing="false" text="File">
           <items>
-            <MenuItem mnemonicParsing="false" text="New" />
-            <MenuItem mnemonicParsing="false" text="Open…" />
-            <Menu mnemonicParsing="false" text="Open Recent" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Close" />
-            <MenuItem mnemonicParsing="false" text="Save" />
-            <MenuItem mnemonicParsing="false" text="Save As…" />
-            <MenuItem mnemonicParsing="false" text="Revert" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Preferences…" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Quit" />
+            <MenuItem fx:id="mQuit" mnemonicParsing="false" text="Quit" />
           </items>
         </Menu>
         <Menu mnemonicParsing="false" text="Help">
           <items>
-            <MenuItem mnemonicParsing="false" text="About MyHelloApp" />
+            <MenuItem fx:id="mHelp" mnemonicParsing="false" text="About Project" />
           </items>
         </Menu>
       </menus>
     </MenuBar>
     <SplitPane dividerPositions="0.2505567928730512, 0.7505567928730512" focusTraversable="true" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
       <items>
-        <AnchorPane>
+        <AnchorPane fx:id="leftPane">
           <children>
             <Label alignment="CENTER" layoutX="14.0" layoutY="14.0" minWidth="60.0" prefWidth="-1.0" style="&#10;" text="Send file" textAlignment="CENTER" wrapText="false">
               <font>
@@ -92,46 +86,108 @@
                 <Color red="0.624" green="0.624" blue="0.624" fx:id="x2" />
               </textFill>
             </Label>
-                  <ProgressBar layoutX="22.0" layoutY="496.0" prefHeight="18.0" prefWidth="176.0" progress="0.0" style="-fx-background-radius: 0;" />
-                  <Text layoutY="533.0" opacity="0.45" strokeType="OUTSIDE" strokeWidth="0.0" text="Progress" textAlignment="CENTER" wrappingWidth="221.0">
+                  <ProgressBar fx:id="progressBar" layoutX="22.0" layoutY="496.0" prefHeight="18.0" prefWidth="176.0" progress="0.0" style="-fx-background-radius: 0;" AnchorPane.leftAnchor="22.0" AnchorPane.rightAnchor="22.0" />
+                  <Text fx:id="progressText" layoutY="533.0" opacity="0.45" strokeType="OUTSIDE" strokeWidth="0.0" text="Progress" textAlignment="CENTER" wrappingWidth="221.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="1.0">
                      <font>
                         <Font size="11.0" />
                      </font>
                   </Text>
-                  <Button layoutX="22.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="72.0" style="-fx-background-radius: 0;" text="Choose a file" textAlignment="CENTER" wrapText="true">
+                  <Button fx:id="bTChoose" layoutX="22.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="83.0" style="-fx-background-radius: 0;" text="Choose a file" textAlignment="CENTER" wrapText="true">
                      <effect>
                         <Blend mode="HARD_LIGHT" />
                      </effect></Button>
-                  <Button layoutX="126.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="72.0" style="-fx-background-radius: 0;" text="Send file" textAlignment="CENTER">
+                  <Button fx:id="bTSend" disable="true" layoutX="115.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="83.0" style="-fx-background-radius: 0;" text="Send file" textAlignment="CENTER">
                      <effect>
                         <Blend mode="HARD_LIGHT" />
                      </effect></Button>
-                  <Text layoutX="15.0" layoutY="68.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Selected file:" />
-                  <TextField editable="false" layoutX="16.0" layoutY="85.0" prefHeight="25.0" prefWidth="191.0" promptText="No file selected" style="-fx-background-radius: 0;" />
-                  <Text layoutX="17.0" layoutY="140.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Size of file" wrappingWidth="191.0" />
-          </children>
-        </AnchorPane>
-        <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
-          <content>
-            <AnchorPane id="Content" minHeight="-1.0" minWidth="-1.0" prefHeight="545.0" prefWidth="430.0">
-              <children>
-                <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Chat" textAlignment="CENTER" textFill="$x2" wrapText="false" />
-                        <TextField layoutX="14.0" layoutY="481.0" prefHeight="50.0" prefWidth="402.0" promptText="Enter your message and click enter" style="-fx-background-radius: 5;" />
-                        <TextArea editable="false" layoutX="14.0" layoutY="49.0" prefHeight="425.0" prefWidth="401.0" promptText="Say Hello" style="-fx-background-radius: 0;" wrapText="true" />
-              </children>
-            </AnchorPane>
-          </content>
-        </ScrollPane>
-        <AnchorPane>
-          <children>
-            <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Settings" textAlignment="CENTER" textFill="$x2" wrapText="false" />
-                  <TextField layoutX="20.0" layoutY="80.0" promptText="Please enter adress IP" text="192.168.1.100" />
-                  <Text layoutX="23.0" layoutY="68.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="IP of receiver " />
-                  <Button disable="true" layoutX="135.0" layoutY="483.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="69.0" style="-fx-background-radius: 0;" text="Apply" textAlignment="CENTER">
+                  <Text fx:id="tSelectedFile" layoutX="15.0" layoutY="68.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Selected file:" />
+                  <TextField fx:id="tFFile" editable="false" layoutX="16.0" layoutY="85.0" prefHeight="25.0" prefWidth="191.0" promptText="No file selected" style="-fx-background-radius: 0;" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
+                  <Text fx:id="tSize" layoutX="16.0" layoutY="142.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Size of file: " wrappingWidth="191.0" />
+                  <Button fx:id="bTAccept" layoutX="115.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="83.0" style="-fx-background-radius: 0; -fx-background-color: PALEGREEN;" text="Accept" textAlignment="CENTER" visible="false">
                      <effect>
                         <Blend mode="HARD_LIGHT" />
                      </effect>
                   </Button>
+                  <Button fx:id="bTDecline" layoutX="22.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="83.0" style="-fx-background-radius: 0; -fx-background-color: LIGHTPINK;" text="Discard" textAlignment="CENTER" visible="false" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
+          </children>
+        </AnchorPane>
+        <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
+          <content>
+            <AnchorPane id="Content" fx:id="centrePane" minHeight="-1.0" minWidth="-1.0" prefHeight="547.0" prefWidth="443.0">
+              <children>
+                <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Chat" textAlignment="CENTER" textFill="$x2" wrapText="false" />
+                        <TextField fx:id="tFEnterText" layoutX="14.0" layoutY="481.0" prefHeight="50.0" prefWidth="415.0" promptText="Enter your message and click enter" style="-fx-background-radius: 5;" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
+                        <TextArea fx:id="textAreaChat" editable="false" layoutX="14.0" layoutY="49.0" prefHeight="425.0" prefWidth="401.0" promptText="No user is connected" style="-fx-background-radius: 0;" wrapText="true" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="15.0" />
+                        <Group fx:id="groupPassword" layoutX="35.0" layoutY="116.0" visible="false">
+                           <children>
+                              <Rectangle fill="#e8e8e8" height="228.0" stroke="#ffd07e" strokeType="OUTSIDE" strokeWidth="6.0" width="372.0" />
+                              <Button fx:id="buttonPassword" layoutX="247.0" layoutY="145.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="Apply" textAlignment="CENTER" wrapText="true">
+                                 <effect>
+                                    <Blend mode="HARD_LIGHT" />
+                                 </effect>
+                              </Button>
+                              <Text layoutX="27.0" layoutY="35.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Password:" />
+                              <PasswordField fx:id="textPassword" layoutX="27.0" layoutY="60.0" prefHeight="37.0" prefWidth="201.0" promptText="Enter the password" style="-fx-background-radius: 0;" />
+                              <ImageView fx:id="image" fitHeight="38.0" fitWidth="37.0" layoutX="185.0" layoutY="87.0" pickOnBounds="true" preserveRatio="true">
+                                 <image>
+                                    <Image url="file:/lock.png" />
+                                 </image>
+                                 <effect>
+                                    <BoxBlur height="0.0" width="0.0" />
+                                 </effect>
+                              </ImageView>
+                           </children>
+                        </Group>
+              </children>
+            </AnchorPane>
+          </content>
+        </ScrollPane>
+        <AnchorPane fx:id="rightPane" minWidth="-Infinity">
+          <children>
+            <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Settings" textAlignment="CENTER" textFill="$x2" wrapText="false" />
+                  <TextField fx:id="iPText" layoutX="20.0" layoutY="80.0" prefHeight="25.0" prefWidth="184.0" promptText="Please enter adress IP" style="-fx-background-radius: 0;" text="192.168.1.100" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
+                  <Text layoutX="23.0" layoutY="68.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="IP of receiver:" />
+                  <Text layoutX="23.0" layoutY="126.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Mode:" />
+                  <Button fx:id="bTTCP" layoutX="15.0" layoutY="200.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0; -fx-background-color: silver;" text="TCP" textAlignment="CENTER" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
+                  <Button fx:id="bTUDP" layoutX="116.0" layoutY="200.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="UDP" textAlignment="CENTER" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
+                  <Text layoutX="22.0" layoutY="186.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Protocol:" />
+                  <Button fx:id="bTEBC" layoutX="15.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0; -fx-background-color: silver;" text="EBC" textAlignment="CENTER" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
+                  <Button fx:id="bTCBC" layoutX="63.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="CBC" textAlignment="CENTER" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
+                  <Button fx:id="bTCFB" layoutX="111.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="CFB" textAlignment="CENTER" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
+                  <Button fx:id="bTOFB" layoutX="159.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="OFB" textAlignment="CENTER" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
+                  <Text fx:id="tIPHint" fill="#8a8a8a" layoutX="138.0" layoutY="97.0" mouseTransparent="true" strokeType="OUTSIDE" strokeWidth="0.0" text="Enter to save" textAlignment="RIGHT" visible="false" wrappingWidth="64.0" AnchorPane.rightAnchor="19.0">
+                     <font>
+                        <Font size="11.0" />
+                     </font>
+                  </Text>
           </children>
         </AnchorPane>
       </items>
@@ -146,7 +202,7 @@
             <Color red="0.625" green="0.625" blue="0.625" fx:id="x4" />
           </textFill>
         </Label>
-        <Pane prefHeight="-1.0" prefWidth="-1.0" style="-fx-background-color: dark_gray;" HBox.hgrow="ALWAYS" />
+        <Pane prefHeight="-1.0" prefWidth="-1.0" HBox.hgrow="ALWAYS" />
         <Label font="$x3" maxWidth="-1.0" text="Right status" textFill="$x4" HBox.hgrow="NEVER" />
       </children>
       <padding>

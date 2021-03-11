@@ -14,13 +14,14 @@ fun main(args: Array<String>) {
 
 class MyApp : App(MainView::class) {
     override fun start(stage: Stage) {
+
         Controller.whoiam = parameters.unnamed[0]
-        Controller.ip = parameters.unnamed[1]
-        println(parameters.unnamed[0])
-        println(parameters.unnamed[1])
+
+        if (parameters.unnamed.size >= 2)
+        Controller.ip = parameters.unnamed[1] ?:"Not given"
+
         super.start(stage)
     }
-
 }
 
 

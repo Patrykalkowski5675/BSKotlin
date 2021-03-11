@@ -8,35 +8,37 @@ import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.net.ServerSocket
+import java.security.Key
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.crypto.Cipher
 import javax.crypto.CipherOutputStream
-import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
-import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
 
 object TCPSenderFileSendController {
 
-    fun sendFile(file: File, mode : Controller.Companion.Modes, progressBar: ProgressBar, progressText: Text, queue : ConcurrentLinkedQueue<String>,queueReceive : ConcurrentLinkedQueue<String>) {
+    fun sendFile(file: File, mode: Controller.Companion.Modes,
+                 progressBar: ProgressBar, progressText: Text,
+                 queue: ConcurrentLinkedQueue<String>,
+                 queueReceive: ConcurrentLinkedQueue<String>,
+//                 sessionKey: Key
+    ) {
 
-        val encryptionKeyString = "thisisa128bitkey"
-        val encryptionKeyBytes = encryptionKeyString.toByteArray()
         val initVector = "encryptionIntVec"
         val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
 
         Thread {
-            val servsock = ServerSocket(13267)
-//           while (true) {
-            println("Waiting...")
-            val sock = servsock.accept()
-            println("Accepted connection : $sock")
+            val serverSocket = ServerSocket(13267)
+//            println("Waiting...")
+            val socket = serverSocket.accept()
+//            println("Accepted connection : $sock")
+            queueReceive.add("_Messag1eS|Start transfer file")
 
             val fis = FileInputStream(file)
             val bis = BufferedInputStream(fis)
-            val os = sock.getOutputStream()
-            println("Sending...")
+            val os = socket.getOutputStream()
+//            println("Sending...")
 
 
             val cipher: Cipher = when (mode) {
@@ -45,13 +47,11 @@ object TCPSenderFileSendController {
                 Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
                 Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
             }
-
-            val secretKey: SecretKey = SecretKeySpec(encryptionKeyBytes, "AES")
-
-            if (mode == Controller.Companion.Modes.EBC)
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-            else
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv)
+            
+//            if (mode == Controller.Companion.Modes.EBC)
+//                cipher.init(Cipher.ENCRYPT_MODE, sessionKey)
+//            else
+//                cipher.init(Cipher.ENCRYPT_MODE, sessionKey, iv)
 
             val cipherOut = CipherOutputStream(os, cipher)
 
@@ -77,17 +77,16 @@ object TCPSenderFileSendController {
             }
             cipherOut.flush()
             cipherOut.close()
-            sock.close()
-            servsock.close()
+            socket.close()
+            serverSocket.close()
 
             Platform.runLater {
                 progressBar.progress = 1.0
                 progressText.text = "Completed"
-//                controller.changeGUIforFileChoice() // czasem wyrzucalo bledy
                 queue.add("*Transfer file ${file.name} successfully")
                 queueReceive.add("_Messag5eN")
+                queueReceive.add("_Messag1eS|Transfer file successfull")
             }
-//            }
         }.start()
 
     }

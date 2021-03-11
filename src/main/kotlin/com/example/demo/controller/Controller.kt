@@ -1,12 +1,14 @@
 package com.example.demo.controller
 
-import com.example.demo.controller.TCP.chat.TCPChatController
 import com.example.demo.controller.TCP.chat.TCPClientChatController
 import com.example.demo.controller.TCP.chat.TCPServerChatController
-import com.example.demo.controller.TCP.transferfile.TCPReciverFileSendController
+import com.example.demo.controller.TCP.tranferSessionKey.TCPReceiverKey
+import com.example.demo.controller.TCP.tranferSessionKey.TCPSenderKey
+import com.example.demo.controller.TCP.transferfile.TCPReceiverFileSendController
 import com.example.demo.controller.TCP.transferfile.TCPSenderFileSendController
-import com.example.demo.controller.UDP.chat.UDPChatController
-import com.example.demo.tools.GenerateRSAKeys
+import com.example.demo.tools.ToolsRSAKeys
+import com.example.demo.tools.ToolsSessionKey
+import com.example.demo.tools.Utility
 import javafx.application.Platform
 import javafx.event.EventHandler
 import javafx.fxml.FXML
@@ -17,6 +19,7 @@ import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.image.Image
 import javafx.scene.image.ImageView
+import javafx.scene.input.KeyCode
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.StackPane
 import javafx.scene.text.Text
@@ -24,8 +27,10 @@ import javafx.stage.FileChooser
 import javafx.stage.Stage
 import tornadofx.FX.Companion.primaryStage
 import java.io.File
+import java.net.InetAddress
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.security.Key
 import java.security.MessageDigest
 import java.security.PrivateKey
 import java.security.PublicKey
@@ -33,6 +38,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import javax.xml.bind.DatatypeConverter
 import kotlin.collections.ArrayList
 import kotlin.system.exitProcess
 
@@ -41,32 +47,35 @@ class Controller : Initializable {
 
     @FXML
     lateinit var iPText: TextField
-    lateinit var tIPHint: Text
+    lateinit var tFFile: TextField
+    lateinit var tFEnterText: TextField
     lateinit var textAreaChat: TextArea
+    lateinit var tIPHint: Text
+    lateinit var tSize: Text
+    lateinit var progressText: Text
+    lateinit var tSelectedFile: Text
+    lateinit var tNoFileWithKeys: Text
+    lateinit var tPassTooShort: Text
     lateinit var bTChoose: Button
     lateinit var bTSend: Button
     lateinit var bTAccept: Button
     lateinit var bTDecline: Button
-    lateinit var bTTCP: Button
-    lateinit var bTUDP: Button
     lateinit var bTEBC: Button
     lateinit var bTCBC: Button
     lateinit var bTCFB: Button
     lateinit var bTOFB: Button
-    lateinit var tFFile: TextField
-    lateinit var tFEnterText: TextField
-    lateinit var tSize: Text
-    lateinit var mHelp: MenuItem
-    lateinit var mQuit: MenuItem
+    lateinit var bTRenewKey: Button
+    lateinit var bTShowKey: Button
+    lateinit var buttonPassword: Button
     lateinit var progressBar: ProgressBar
-    lateinit var progressText: Text
-    lateinit var tSelectedFile: Text
-    lateinit var rightPane: AnchorPane
-    lateinit var leftPane: AnchorPane
     lateinit var textPassword: PasswordField
     lateinit var groupPassword: Group
-    lateinit var buttonPassword: Button
     lateinit var image: ImageView
+    lateinit var status: Label
+    lateinit var mHelp: MenuItem
+    lateinit var mQuit: MenuItem
+    lateinit var rightPane: AnchorPane
+    lateinit var leftPane: AnchorPane
 
 
     private var fileSize: Long = 0L
@@ -74,12 +83,11 @@ class Controller : Initializable {
     private val queue = ConcurrentLinkedQueue<String>()
     private val queueReceive = ConcurrentLinkedQueue<String>()
     private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
-    var listModeButtons = ArrayList<Button>()
-    var file: File? = null
-    lateinit var handleUDPChat: UDPChatController
-    lateinit var handleTCPChat: TCPChatController
+    private var listModeButtons = ArrayList<Button>()
+    private var file: File? = null
 
-    lateinit var keys : Pair<PrivateKey, PublicKey>
+    lateinit var keys: Pair<PrivateKey, PublicKey>
+    lateinit var sessionKey: Key
 
     companion object {
         var nameUserFlag = true
@@ -101,51 +109,156 @@ class Controller : Initializable {
         var protocol: Protocols = Protocols.TCP
         var ip: String = ""
         var whoiam: String = ""
-
+        var invoked = false
     }
 
     @FXML
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         primaryStage.maxHeight = 650.0
 
-        initButtonChooseFile()
+        ////menu
         initMenu()
-        initChat()
-        initTextFieldEnterText()
         initFnOnClose()
+
+        ////left side
+        initButtonChooseFile()
         initSendButton()
-        initProtocolButtons()
+
+        ///right side
         initTransferButtons()
         initModeButtons()
         initIPTextField()
-        initWindowsForPassword()
 
+        //cetrer side
+        initChatWindows(status)
 
+        ///password and chat
+        exchangeSessionKey()
+        initSessionKeyButtons()
     }
 
-    private fun initWindowsForPassword() {
-        fun changeVisibility(bool : Boolean){
-            leftPane.isDisable = bool
-            tFEnterText.isDisable = bool
-            textAreaChat.isDisable = bool
-            rightPane.isDisable = bool
-            groupPassword.isVisible = bool
+
+//////////////////////// PASSWORD
+
+    private fun changeDisability(bool: Boolean) {
+        leftPane.isDisable = bool
+        tFEnterText.isDisable = bool
+//        textAreaChat.isDisable = bool
+        rightPane.isDisable = bool
+    }
+
+    private fun exchangeSessionKey() {
+        if (invoked) return
+        queueReceive.add("*Preparing for exchange keys")
+        invoked = true
+
+        changeDisability(true)
+
+        fun continueInit() {
+            initTextFieldEnterText()
+            initChat()
         }
 
-        if (whoiam == "Client") return
+        when (whoiam) {
+            "Client" -> {
+                groupPassword.isVisible = false
+                queueReceive.add("_Messag1eS|Waiting for the Server")
 
-        changeVisibility(true)
-        image.image = Image(javaClass.classLoader.getResource("lock.png")?.toURI()?.toString())
+                //send - third operation
+                lateinit var pair: Pair<Key, ByteArray>
+                val threadSendTHREE = Thread {
+                    queueReceive.add("_Messag1eS|jestem w THREE")
+                    TCPSenderKey.initTransferEncodedKey(pair.second)
+                    continueInit()
+                    changeDisability(false)
+                    invoked = false
 
-        buttonPassword.setOnAction {
-            changeVisibility(false)
-            val str = textPassword.text
-            val digest = MessageDigest.getInstance("SHA-256")
-            val hash = digest.digest(str.toByteArray(StandardCharsets.UTF_8))
+                    queueReceive.add("_Messag1eS|Successfully connected with Server")
+                    queueReceive.add("*Successfully connected with Server")
+                }
 
+                // recive - second operation
+                val threadReciveTWO = Thread {
+                    val byteArray = TCPReceiverKey.initReceiveKey()
+                    pair = ToolsSessionKey.generateSessionKeyAndEncodeIt(byteArray)
+                    queueReceive.add("*Generated session Key")
+                    sessionKey = pair.first
+                    threadSendTHREE.start()
+                }.start()
 
-            keys = GenerateRSAKeys(hash).getKeys()
+            }
+            "Server" -> {
+                val lengthOfPassword = 4
+
+                if (textPassword.text.isNullOrBlank()) {
+                    groupPassword.isVisible = true
+                    queueReceive.add("_Messag1eS|Waiting for the password")
+                }
+                /// adding image
+                image.image = Image(javaClass.classLoader.getResource("lock.png")?.toURI()?.toString())
+
+                if (!ToolsRSAKeys.areKeysPresent())
+                    tNoFileWithKeys.isVisible = true
+
+                /// adding approving pass with enter
+                textPassword.onKeyPressed = EventHandler { event ->
+                    if (event.code == KeyCode.ENTER) {
+                        if (textPassword.text.length >= lengthOfPassword) buttonPassword.fire()
+                        else tPassTooShort.isVisible = true
+                    }
+                    if (textPassword.text.length >= lengthOfPassword) tPassTooShort.isVisible = false
+                }
+
+                buttonPassword.setOnAction {
+
+                    /// create hash from password
+                    val str = textPassword.text
+                    if (str.length >= lengthOfPassword) {
+                        val digest = MessageDigest.getInstance("SHA-256")
+                        val hash = digest.digest(str.toByteArray(StandardCharsets.UTF_8))
+
+                        groupPassword.isVisible = false
+                        queueReceive.add("*Waiting for other user")
+
+                        //receive - fourth operation
+                        val threadReciveFOUR = Thread {
+                            queueReceive.add("*Waiting for session key")
+                            val byteArray = TCPReceiverKey.initReceiveKey()
+                            sessionKey = ToolsSessionKey.decodeSessionKey(byteArray, keys.first)
+                            changeDisability(false)
+                            continueInit()
+                            invoked = false
+                        }
+                        /// send - first operation
+                        var threadSendONE = Thread {
+                            keys = ToolsRSAKeys(hash).getKeys()
+                            TCPSenderKey.initTransferKey(keys.second)
+                            queueReceive.add("*Sent public key")
+                            threadReciveFOUR.start()
+                        }.start()
+
+                        queueReceive.add("_Messag1eS|The password has been entered successfully")
+                    } else tPassTooShort.isVisible = true
+                }
+
+                if (!textPassword.text.isNullOrBlank()) {
+                    buttonPassword.fire()
+                    queueReceive.add("_Messag1eS|The password has been read from the cache")
+                }
+            }
         }
+    }
+
+    private fun initSessionKeyButtons() {
+        if (whoiam == "Server") bTRenewKey.isDisable = false
+
+        bTRenewKey.setOnAction {
+            queue.add("_Messag8e1")
+            exchangeSessionKey()
+        }
+
+        bTShowKey.setOnAction { queueReceive.add("Session Key HEX: " + DatatypeConverter.printHexBinary(sessionKey.encoded)) }
+
     }
 
 
@@ -156,16 +269,11 @@ class Controller : Initializable {
             queue.add("_Messag5eT|${fileSize}|${fileName}")
             rightPane.isDisable = true
             progressText.text = "Waiting for response"
+            queueReceive.add("_Messag1eS|Waiting for accept or decline file")
         }
     }
 
-    internal fun changesPostReciveFile() {
-        queue.add("*Transfer file ${fileName} successfully")
-        queueReceive.add("*Transfer file ${fileName} successfully")
-        changeGUIforFileChoice()
-    }
-
-    internal fun changeGUIforFileTransfer(array: List<String>) {
+    internal fun changeGUIForFileTransfer(array: List<String>) {
         bTChoose.isVisible = false
         bTDecline.isVisible = true
         bTSend.isVisible = false
@@ -183,7 +291,7 @@ class Controller : Initializable {
         rightPane.isDisable = true
     }
 
-    internal fun changeGUIforFileChoice() {
+    internal fun changeGUIForFileChoice() {
         bTChoose.isVisible = true
         bTDecline.isVisible = false
         bTSend.isVisible = true
@@ -204,10 +312,13 @@ class Controller : Initializable {
 
     private fun initButtonChooseFile() {
         bTChoose.setOnAction {
+            queueReceive.add("_Messag1eS|Open windows File Chooser")
             val fileChooser = FileChooser()
             file = fileChooser.showOpenDialog(primaryStage)
 
             if (file != null) {
+                queueReceive.add("_Messag1eS|The file was selected correctly")
+
                 tFFile.text = file!!.name
                 fileName = file!!.name
                 fileSize = file!!.length()
@@ -221,6 +332,9 @@ class Controller : Initializable {
                     progressText.text = "Waiting for send"
                 }
 
+            } else {
+                queueReceive.add("_Messag1eS|No file has been selected")
+                changeGUIForFileChoice()
             }
         }
     }
@@ -229,20 +343,26 @@ class Controller : Initializable {
         bTAccept.setOnAction {
             queue.add("_Messag5eY")
             queue.add("*User accepted the file")
-            TCPReciverFileSendController.reciveFile(mode, progressBar, fileName, fileSize, progressText, queue, queueReceive)
+            queueReceive.add("_Messag1eS|File accepted")
+            TCPReceiverFileSendController.reciveFile(mode, progressBar, fileName, fileSize, progressText, queue, queueReceive)
             rightPane.isDisable = true
         }
         bTDecline.setOnAction {
             queue.add("_Messag5eN")
             queue.add("*User rejected the file")
-            changeGUIforFileChoice()
+            queueReceive.add("_Messag1eS|File rejected")
+            changeGUIForFileChoice()
         }
     }
 
 
     //////////////////////// CHAT
 
-    internal fun analizeHiddenMessage(msg: String): Boolean {
+    private fun analiseHiddenMessage(msg: String, status: Label): Boolean {
+
+        fun changeStatus(msg: String) {
+            Platform.runLater { status.text = msg }
+        }
 
         if (msg.length < 10) return false
 
@@ -250,24 +370,34 @@ class Controller : Initializable {
         print(tmpSubString)
 
         when (tmpSubString) {
-            "_Messag5eT" -> changeGUIforFileTransfer(msg.split('|'))
-            "_Messag5eY" -> TCPSenderFileSendController.sendFile(file!!, mode, progressBar, progressText, queue, queueReceive)
-            "_Messag5eN" -> changeGUIforFileChoice()
+            "_Messag1eS" -> changeStatus(msg.split('|')[1])
+            "_Messag5eT" -> {
+                Platform.runLater { changeGUIForFileTransfer(msg.split('|')) }
+                changeStatus("User wants to send a file")
+            }
+            "_Messag5eY" -> Platform.runLater { TCPSenderFileSendController.sendFile(file!!, mode, progressBar, progressText, queue, queueReceive) }
+            "_Messag5eN" -> Platform.runLater { changeGUIForFileChoice() }
             "_Messag6e1" -> Platform.runLater {
                 changeUIButtonsMode(0)
+                changeStatus("User changed mode to ECB")
             }
             "_Messag6e2" -> Platform.runLater {
                 changeUIButtonsMode(1)
+                changeStatus("User changed mode to CBC")
             }
             "_Messag6e3" -> Platform.runLater {
                 changeUIButtonsMode(2)
+                changeStatus("User changed mode to CFB")
             }
             "_Messag6e4" -> Platform.runLater {
-                changeUIButtonsMode(3)
+                Platform.runLater { changeUIButtonsMode(3) }
+                changeStatus("User changed mode to OFB")
             }
-            "_Messag7e1" -> clickOnTCPButton()
-            "_Messag7e2" -> clickOnUDPButton()
-            else -> return false
+            "_Messag8e1" -> Platform.runLater { exchangeSessionKey() }
+            else -> {
+
+                return false
+            }
 
         }
         return true
@@ -275,25 +405,13 @@ class Controller : Initializable {
 
     private fun initChat() {
         when (whoiam) {
-            "Server" -> {
-                handleTCPChat = TCPServerChatController(queue, queueReceive, this)
-                handleTCPChat.initChat()
-                handleUDPChat = UDPChatController(11111, 22222, queue, queueReceive, this)
-//                handleUDPChat.initChat()
-
-                iPText.text = "Server (Unable change IP)"
-                iPText.isEditable = false
-                iPText.isMouseTransparent = true
-            }
-            "Client" -> {
-                handleTCPChat = TCPClientChatController(queue, queueReceive, this)
-                handleTCPChat.initChat()
-                handleUDPChat = UDPChatController(22222, 11111, queue, queueReceive, this)
-//                handleUDPChat.initChat()
-                iPText.text = ip
-            }
+            "Server" -> TCPServerChatController.initChat(queue, queueReceive, mode, sessionKey)
+            "Client" -> TCPClientChatController.initChat(queue, queueReceive, mode, sessionKey, ip)
             else -> println("Unknown parameter")
         }
+    }
+
+    private fun initChatWindows(status: Label) {
 
         Thread {
             var msg = ""
@@ -302,7 +420,7 @@ class Controller : Initializable {
                     msg = queueReceive.poll()
 
                     // function returns false if in msg in no hidden message
-                    if (!analizeHiddenMessage(msg)) {
+                    if (!analiseHiddenMessage(msg, status)) {
 
                         val sB = StringBuilder()
 //
@@ -330,20 +448,6 @@ class Controller : Initializable {
         }.start()
     }
 
-    internal fun syncSettingBetweenUsersOnStartChat() {
-        when (mode) {
-            Modes.EBC -> queue.add("_Messag6e1")
-            Modes.CBC -> queue.add("_Messag6e2")
-            Modes.CFB -> queue.add("_Messag6e3")
-            Modes.OFB -> queue.add("_Messag6e4")
-        }
-
-//        when (protocol) {
-//            Protocols.TCP -> queue.add("_Messag7e1")
-//            Protocols.UDP -> queue.add("_Messag7e2")
-//        }
-    }
-
     private fun initTextFieldEnterText() {
         tFEnterText.setOnAction {
             if (!tFEnterText.text.isNullOrBlank()) {
@@ -359,8 +463,8 @@ class Controller : Initializable {
         }
 
         tFEnterText.textProperty().addListener { _, _, newValue ->
-            if (newValue.length > 512) {
-                val s = newValue.substring(0..512)
+            if (newValue.length > 256) {
+                val s = newValue.substring(0..256)
                 tFEnterText.text = s
             }
         }
@@ -371,10 +475,24 @@ class Controller : Initializable {
     //////////////////////// SETTING
 
     private fun initIPTextField() {
+        when (whoiam) {
+            "Server" -> {
+                iPText.text = InetAddress.getLocalHost().hostAddress.toString() + " (Unable change IP)"
+                iPText.isDisable = true
+//                iPText.isEditable = false
+//                iPText.isMouseTransparent = true
+            }
+            "Client" -> {
+                iPText.text = ip
+            }
+            else -> println("Unknown parameter")
+        }
+
         iPText.setOnAction {
-            print(iPText.text)
+//            print(iPText.text)
             ip = iPText.text
             tIPHint.isVisible = false
+            queueReceive.add("_Messag1eS|An IP address has been entered")
         }
         iPText.onKeyPressed = EventHandler {
 //            tIPHint.isVisible = iPText.text.length <= 16
@@ -411,64 +529,25 @@ class Controller : Initializable {
 
         bTEBC.setOnAction {
             queue.add("_Messag6e1")
+            queueReceive.add("_Messag1eS|Change to EBC")
             changeUIButtonsMode(0)
         }
         bTCBC.setOnAction {
             queue.add("_Messag6e2")
+            queueReceive.add("_Messag1eS|Change to CBC")
             changeUIButtonsMode(1)
         }
         bTCFB.setOnAction {
             queue.add("_Messag6e3")
+            queueReceive.add("_Messag1eS|Change to CFB")
             changeUIButtonsMode(2)
         }
         bTOFB.setOnAction {
             queue.add("_Messag6e4")
+            queueReceive.add("_Messag1eS|Change to OFB")
             changeUIButtonsMode(3)
         }
 
-    }
-
-
-    private fun initProtocolButtons() {
-        bTTCP.setOnAction {
-            if (protocol != Protocols.TCP) {
-                queue.add("_Messag7e1")
-                clickOnTCPButton()
-            }
-        }
-
-        bTUDP.setOnAction {
-            if (protocol != Protocols.UDP) {
-                queue.add("_Messag7e2")
-                clickOnUDPButton()
-            }
-        }
-    }
-
-    private fun clickOnTCPButton() {
-        bTTCP.style = "-fx-background-color:silver; -fx-background-radius : 0;"
-        bTUDP.style = "-fx-background-radius : 0;"
-        protocol = Protocols.TCP
-//        Thread.sleep(500)
-
-        handleUDPChat.stop()
-        handleTCPChat.initChat()
-    }
-
-    private fun clickOnUDPButton() {
-        bTTCP.style = "-fx-background-radius : 0;"
-        bTUDP.style = "-fx-background-color:silver; -fx-background-radius : 0;"
-        protocol = Protocols.UDP
-//        Thread.sleep(500)
-        handleTCPChat.stop()
-        handleUDPChat.initChat()
-
-    }
-
-
-    internal fun setSettingToTCP() {
-        queueReceive.add("*Set protocol to TCP")
-        clickOnTCPButton()
     }
 
     //////////////////////// MENU

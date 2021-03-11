@@ -1,4 +1,4 @@
-package com.example.demo.controller
+package com.example.demo.tools
 
 import com.sun.deploy.panel.TextFieldProperty
 import javafx.scene.control.Button
@@ -21,7 +21,7 @@ object Utility {
             fileSizeString = ((localFileSize * 100).roundToInt() / 100.0).toString() + " B"
         }
 
-        return "Size of file: " + fileSizeString
+        return "Size of file: $fileSizeString"
     }
 
 
