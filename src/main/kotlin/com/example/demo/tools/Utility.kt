@@ -1,8 +1,12 @@
 package com.example.demo.tools
 
+import com.example.demo.controller.Controller
 import com.sun.deploy.panel.TextFieldProperty
 import javafx.scene.control.Button
 import tornadofx.field
+import java.security.Key
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
 import kotlin.math.roundToInt
 
 object Utility {
@@ -24,5 +28,32 @@ object Utility {
         return "Size of file: $fileSizeString"
     }
 
+    fun initCipher(cipherMode: Int, mode : Controller.Companion.Modes, sessionKey : Key ): Cipher {
+        val initVector = "encryptionIntVec"
+        val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
+
+        val cipher: Cipher = when (mode) {
+            Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
+            Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
+            Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
+            Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
+        }
+
+        when (cipherMode) {
+            Cipher.ENCRYPT_MODE -> {
+                if (mode == Controller.Companion.Modes.EBC)
+                    cipher.init(Cipher.ENCRYPT_MODE, sessionKey)
+                else
+                    cipher.init(Cipher.ENCRYPT_MODE, sessionKey, iv)
+            }
+            Cipher.DECRYPT_MODE -> {
+                if (mode == Controller.Companion.Modes.EBC)
+                    cipher.init(Cipher.DECRYPT_MODE, sessionKey)
+                else
+                    cipher.init(Cipher.DECRYPT_MODE, sessionKey, iv)
+            }
+        }
+        return cipher
+    }
 
 }

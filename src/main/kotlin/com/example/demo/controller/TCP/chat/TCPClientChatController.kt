@@ -1,6 +1,7 @@
 package com.example.demo.controller.TCP.chat
 
 import com.example.demo.controller.Controller
+import com.example.demo.tools.Utility
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.Socket
@@ -38,7 +39,7 @@ class TCPClientChatController(val queue: ConcurrentLinkedQueue<String>,
 
     private fun initThreadSend() {
 
-        val cipher = initCipher(Cipher.ENCRYPT_MODE)
+        val cipher = Utility.initCipher(Cipher.ENCRYPT_MODE,mode,sessionKey)
 
         handleThreadSend = Thread {
             try {
@@ -64,7 +65,7 @@ class TCPClientChatController(val queue: ConcurrentLinkedQueue<String>,
 
     private fun initThreadReceive() {
 
-        val cipher = initCipher(Cipher.DECRYPT_MODE)
+        val cipher = Utility.initCipher(Cipher.DECRYPT_MODE,mode,sessionKey)
 
 //        if (!running) return
         handleThreadReceive = Thread {
@@ -107,41 +108,7 @@ class TCPClientChatController(val queue: ConcurrentLinkedQueue<String>,
         handleThreadReceive!!.start()
     }
 
-    fun initCipher(cipherMode: Int): Cipher {
-        val initVector = "encryptionIntVec"
-        val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
 
-        val cipher: Cipher = when (mode) {
-            Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
-            Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
-            Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
-            Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
-        }
-
-        when (cipherMode) {
-            Cipher.ENCRYPT_MODE -> {
-                if (mode == Controller.Companion.Modes.EBC)
-                    cipher.init(Cipher.ENCRYPT_MODE, sessionKey)
-                else
-                    cipher.init(Cipher.ENCRYPT_MODE, sessionKey, iv)
-            }
-            Cipher.DECRYPT_MODE -> {
-                if (mode == Controller.Companion.Modes.EBC)
-                    cipher.init(Cipher.DECRYPT_MODE, sessionKey)
-                else
-                    cipher.init(Cipher.DECRYPT_MODE, sessionKey, iv)
-            }
-        }
-        return cipher
-    }
-
-    fun changeIP(ip: String) {
-//        running = false
-//        this.secondUserIP = ip
-//        s?.close()
-        stop()
-        this.secondUserIP = ip
-    }
 
     override fun stop() {
         running = false

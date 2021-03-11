@@ -1,6 +1,7 @@
 package com.example.demo.controller.TCP.chat
 
 import com.example.demo.controller.Controller
+import com.example.demo.tools.Utility
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.InetSocketAddress
@@ -39,7 +40,8 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
     }
 
     private fun initThreadSend() {
-        val cipher = initCipher(Cipher.ENCRYPT_MODE)
+
+        val cipher = Utility.initCipher(Cipher.ENCRYPT_MODE,mode,sessionKey)
 
         handleThreadSend = Thread {
             var sd: String
@@ -68,7 +70,7 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
 
     private fun initThreadReceive() {
 
-        val cipher = initCipher(Cipher.DECRYPT_MODE)
+        val cipher = Utility.initCipher(Cipher.DECRYPT_MODE,mode,sessionKey)
 
         handleThreadReceive = Thread {
             try {
@@ -140,35 +142,6 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
             Controller.Companion.Modes.CFB -> queue.add("_Messag6e3")
             Controller.Companion.Modes.OFB -> queue.add("_Messag6e4")
         }
-    }
-
-
-    private fun initCipher(cipherMode: Int): Cipher {
-        val initVector = "encryptionIntVec"
-        val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
-
-        val cipher: Cipher = when (mode) {
-            Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
-            Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
-            Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
-            Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
-        }
-
-        when (cipherMode) {
-            Cipher.ENCRYPT_MODE -> {
-                if (mode == Controller.Companion.Modes.EBC)
-                    cipher.init(Cipher.ENCRYPT_MODE, sessionKey)
-                else
-                    cipher.init(Cipher.ENCRYPT_MODE, sessionKey, iv)
-            }
-            Cipher.DECRYPT_MODE -> {
-                if (mode == Controller.Companion.Modes.EBC)
-                    cipher.init(Cipher.DECRYPT_MODE, sessionKey)
-                else
-                    cipher.init(Cipher.DECRYPT_MODE, sessionKey, iv)
-            }
-        }
-        return cipher
     }
 
 

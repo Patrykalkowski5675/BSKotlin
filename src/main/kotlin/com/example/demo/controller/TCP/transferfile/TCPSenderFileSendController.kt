@@ -1,6 +1,7 @@
 package com.example.demo.controller.TCP.transferfile
 
 import com.example.demo.controller.Controller
+import com.example.demo.tools.Utility
 import javafx.application.Platform
 import javafx.scene.control.ProgressBar
 import javafx.scene.text.Text
@@ -44,7 +45,7 @@ object TCPSenderFileSendController {
 //            println("Sending...")
 
 
-                val cipher = initCipher(mode, sessionKey)
+                val cipher = Utility.initCipher(Cipher.ENCRYPT_MODE,mode,sessionKey)
 
                 cipherOut = CipherOutputStream(os, cipher)
 
@@ -94,23 +95,4 @@ object TCPSenderFileSendController {
         handleSocket?.close()
     }
 
-    private fun initCipher(mode: Controller.Companion.Modes, sessionKey: Key): Cipher {
-        val initVector = "encryptionIntVec"
-        val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
-
-        val cipher: Cipher = when (mode) {
-            Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
-            Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
-            Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
-            Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
-        }
-
-        if (mode == Controller.Companion.Modes.EBC)
-            cipher.init(Cipher.ENCRYPT_MODE, sessionKey)
-        else
-            cipher.init(Cipher.ENCRYPT_MODE, sessionKey, iv)
-
-
-        return cipher
-    }
 }
