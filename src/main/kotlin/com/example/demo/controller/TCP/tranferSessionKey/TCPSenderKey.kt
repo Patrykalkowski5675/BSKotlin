@@ -25,7 +25,9 @@ object TCPSenderKey {
             } catch (e: Exception) {
                 serverSocket.close()
                 Thread.sleep(100)
+                e.printStackTrace()
                 initTransferKey(key)
+
             }
     }
 
@@ -48,6 +50,7 @@ object TCPSenderKey {
         } catch (e: Exception) {
             serverSocket.close()
             Thread.sleep(100)
+            e.printStackTrace()
             initTransferEncodedKey(byteArray)
         }
     }

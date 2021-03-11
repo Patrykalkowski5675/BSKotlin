@@ -1,6 +1,5 @@
 package com.example.demo.controller.TCP.tranferSessionKey
 
-import java.net.InetAddress
 import java.net.Socket
 import java.nio.ByteBuffer
 
@@ -8,19 +7,22 @@ object TCPReceiverKey {
 
     private const val port = 13267
 
+    @Volatile
+    var flag = true
 
-    fun initReceiveKey(): ByteArray {
+    fun initReceiveKey(secondUserIP : String): ByteArray {
 
         lateinit var byteArray: ByteArray
         lateinit var socket: Socket
-
-        var flag = true
+        println('\n' + secondUserIP)
+        flag = true
         while (flag)
             try {
-                socket = Socket(InetAddress.getLocalHost(), port)
+                socket = Socket(secondUserIP, port)
                 flag = false
             } catch (e: Exception) {
                 Thread.sleep(500)
+                e.printStackTrace()
             }
 
         val byteArrayToByteBuffer = ByteArray(4)
@@ -36,5 +38,9 @@ object TCPReceiverKey {
         byteArray = readByteArray
 
         return byteArray
+    }
+
+    fun stopReceiveKey(){
+        flag =false
     }
 }

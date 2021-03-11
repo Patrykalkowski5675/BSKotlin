@@ -17,8 +17,10 @@ class MyApp : App(MainView::class) {
 
         Controller.whoiam = parameters.unnamed[0]
 
-        if (parameters.unnamed.size >= 2)
-        Controller.ip = parameters.unnamed[1] ?:"Not given"
+        if (parameters.unnamed.size >= 2) {
+            Controller.secondUserIP = parameters.unnamed[1] ?: "Not given"
+            println(Controller.secondUserIP)
+        }
 
         super.start(stage)
     }

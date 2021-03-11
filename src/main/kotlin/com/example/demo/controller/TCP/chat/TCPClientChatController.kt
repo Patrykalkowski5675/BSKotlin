@@ -5,16 +5,16 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.Socket
 import java.security.Key
-import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.crypto.Cipher
-import javax.crypto.CipherOutputStream
-import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 
-object TCPClientChatController : TCPChatController {
+class TCPClientChatController(val queue: ConcurrentLinkedQueue<String>,
+                              val queueReceive: ConcurrentLinkedQueue<String>,
+                              val mode: Controller.Companion.Modes,
+                              val sessionKey: Key,
+                              var secondUserIP: String) : TCPChatController {
 
     @Volatile
     private var flagStart: Boolean = false
@@ -22,31 +22,17 @@ object TCPClientChatController : TCPChatController {
     private var invoked: Boolean = false
 
     private var s: Socket? = null
-    private var br: DataInputStream? = null
-    private lateinit var outTo: DataOutputStream
-
-    private lateinit var queue: ConcurrentLinkedQueue<String>
-    private lateinit var queueReceive: ConcurrentLinkedQueue<String>
-    private lateinit var mode: Controller.Companion.Modes
-    private lateinit var sessionKey: Key
-
-    private const val initVector = "encryptionIntVec"
-    private val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
+    private var inStream: DataInputStream? = null
+    private var outStream: DataOutputStream? = null
 
 
-    fun initChat(queue: ConcurrentLinkedQueue<String>,
-                 queueReceive: ConcurrentLinkedQueue<String>,
-                 mode: Controller.Companion.Modes,
-                 sessionKey: Key,
-                 ip: String) {
-        this.queue = queue
-        this.queueReceive = queueReceive
-        this.mode = mode
-        this.sessionKey = sessionKey
+    private var handleThreadSend: Thread? = null
+    private var handleThreadReceive: Thread? = null
 
-        running = true
+    init {
+        initThreadReceive()
         initThreadSend()
-        initThreadReceive(ip)
+        running = true
     }
 
 
@@ -54,7 +40,7 @@ object TCPClientChatController : TCPChatController {
 
         val cipher = initCipher(Cipher.ENCRYPT_MODE)
 
-        Thread {
+        handleThreadSend = Thread {
             try {
                 var sd: String
                 while (running) {
@@ -62,39 +48,43 @@ object TCPClientChatController : TCPChatController {
                     if (flagStart) {
                         sd = queue.poll()
                         val encryptedMessageBytes = cipher.doFinal(sd.toByteArray())
-                        outTo.writeInt(encryptedMessageBytes.size)
-                        outTo.write(encryptedMessageBytes)
+                        outStream?.writeInt(encryptedMessageBytes.size)
+                        outStream?.write(encryptedMessageBytes)
 
-                        outTo.flush()
+                        outStream?.flush()
                     }
                 }
             } catch (e: Exception) {
                 println("Exception occured");
                 initThreadSend()
             }
-        }.start()
+        }
+        handleThreadSend!!.start()
     }
 
-    private fun initThreadReceive(ip : String) {
+    private fun initThreadReceive() {
 
         val cipher = initCipher(Cipher.DECRYPT_MODE)
 
 //        if (!running) return
-        var threadRecive = Thread {
+        handleThreadReceive = Thread {
             try {
-                s = Socket(ip, 5334)
-                br = DataInputStream(s!!.getInputStream())
-                outTo = DataOutputStream(s!!.getOutputStream())
+//                println(secondUserIP)
+                s = Socket(secondUserIP, 5334)
+                inStream = DataInputStream(s!!.getInputStream())
+                outStream = DataOutputStream(s!!.getOutputStream())
 
                 flagStart = true
                 invoked = true
 
                 while (true) {
 
-                    val length: Int = br!!.readInt()
-                    val message = ByteArray(length)
-                    for (i in message.indices)
-                        message[i] = br!!.readByte()
+                    val length: Int? = inStream?.readInt()
+                    val message = length?.let { ByteArray(it) }
+                    if (message != null) {
+                        for (i in message.indices)
+                            message[i] = inStream?.readByte()!!
+                    }
 
                     val encryptedMessageBytes = cipher.doFinal(message)
 
@@ -102,7 +92,7 @@ object TCPClientChatController : TCPChatController {
                 }
             } catch (e: Exception) {
                 queueReceive.add("*Server TCP is not available, please wait, reconnecting in 5 second...")
-                br?.close()
+//                inStream.close()
                 s?.close()
                 flagStart = false
                 println("errorCLREV")
@@ -111,12 +101,16 @@ object TCPClientChatController : TCPChatController {
                     queueReceive.add("_Messag8e1")
                     invoked = false
                 }
-                initThreadReceive(ip)
+                initThreadReceive()
             }
-        }.start()
+        }
+        handleThreadReceive!!.start()
     }
 
     fun initCipher(cipherMode: Int): Cipher {
+        val initVector = "encryptionIntVec"
+        val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
+
         val cipher: Cipher = when (mode) {
             Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
             Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
@@ -141,11 +135,25 @@ object TCPClientChatController : TCPChatController {
         return cipher
     }
 
-    override fun stop() {
+    fun changeIP(ip: String) {
 //        running = false
+//        this.secondUserIP = ip
+//        s?.close()
+        stop()
+        this.secondUserIP = ip
+    }
 
-        br?.close()
+    override fun stop() {
+        running = false
+        outStream?.close()
+        inStream?.close()
         s?.close()
+        try {
+//            handleThreadSend?.interrupt()
+//            handleThreadReceive?.interrupt()
+        }catch (e : Exception){
+
+        }
     }
 
 }

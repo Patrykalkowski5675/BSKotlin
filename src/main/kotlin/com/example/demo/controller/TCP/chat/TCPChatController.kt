@@ -10,6 +10,7 @@ import javax.crypto.Cipher
 
 interface TCPChatController {
 
+
     fun stop()
 
 }

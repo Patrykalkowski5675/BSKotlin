@@ -2,7 +2,6 @@ package com.example.demo.controller.TCP.transferfile
 
 import com.example.demo.controller.Controller
 import javafx.application.Platform
-import javafx.scene.control.ChoiceBox
 import javafx.scene.control.ProgressBar
 import javafx.scene.text.Text
 import java.io.DataInputStream
@@ -13,86 +12,105 @@ import java.security.Key
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.crypto.Cipher
 import javax.crypto.CipherOutputStream
-import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
-import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
 
 object TCPReceiverFileSendController {
 
-    fun reciveFile(mode: Controller.Companion.Modes,
-                   progressBar: ProgressBar,
-                   fileName: String,
-                   fileSize: Long,
-                   progressText: Text,
-                   queue: ConcurrentLinkedQueue<String>,
-                   queueReceive: ConcurrentLinkedQueue<String>,
-//                   sessionKey: Key
+    private var handleSocket: Socket? = null
+    private var handleThread : Thread? = null
+
+    fun receiveFile(mode: Controller.Companion.Modes,
+                    progressBar: ProgressBar,
+                    fileName: String,
+                    fileSize: Long,
+                    progressText: Text,
+                    queue: ConcurrentLinkedQueue<String>,
+                    queueReceive: ConcurrentLinkedQueue<String>,
+                    sessionKey: Key,
+                    secondUserIP: String
     ) {
 
-        Thread {
+       handleThread =  Thread {
+            var cipherOut: CipherOutputStream? = null
+            var clientData: DataInputStream? = null
+            try {
+                handleSocket = Socket(secondUserIP, 13267)
 
-            val initVector = "encryptionIntVec"
-            val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
+                println("Connecting...")
+                val bufferSize = handleSocket!!.receiveBufferSize
 
-            val sock = Socket("localhost", 13267)
-            println("Connecting...")
-            val bufferSize = sock.receiveBufferSize
+                clientData  = DataInputStream(handleSocket!!.getInputStream())
+                println("n" + fileName + "n")
+                val os: OutputStream = FileOutputStream(fileName)
 
-            val clientData = DataInputStream(sock.getInputStream())
-            println("n" + fileName + "n")
-            val os: OutputStream = FileOutputStream(fileName)
+                /// CFB and OFB operate on 64-bit block by default
+                /// cipher.blockSize
+                val cipher = initCipher(mode, sessionKey)
 
-            /// CFB and OFB operate on 64-bit block by default
-            /// cipher.blockSize
-            val cipher: Cipher = when (mode) {
-                Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
-                Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
-                Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
-                Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
-            }
-//            val cipher: Cipher = when (mode) {
-//                Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
-//                Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
-//                Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
-//                Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
-//            }
+                cipherOut = CipherOutputStream(os, cipher)
 
+                val buffer = ByteArray(bufferSize)
 
-//            if (mode == Controller.Companion.Modes.EBC)
-//                cipher.init(Cipher.DECRYPT_MODE, sessionKey)
-//            else
-//                cipher.init(Cipher.DECRYPT_MODE, sessionKey, iv)
+                var bufferCount = 0L
+                var read: Int
+                var tmp: Double
 
-
-            val cipherOut = CipherOutputStream(os, cipher)
-
-            val buffer = ByteArray(bufferSize)
-
-            var bufferCount = 0L
-            var read: Int
-            var tmp: Double
-
-            while (clientData.read(buffer).also { read = it } != -1) {
-                cipherOut.write(buffer, 0, read)
-                bufferCount += 4096
-                Platform.runLater {
-                    tmp = bufferCount.toDouble() / fileSize
-                    progressBar.progress = tmp
-                    progressText.text = (tmp * 100).roundToInt().toString()
+                while (clientData.read(buffer).also { read = it } != -1) {
+                    cipherOut.write(buffer, 0, read)
+                    bufferCount += 4096
+                    Platform.runLater {
+                        tmp = bufferCount.toDouble() / fileSize
+                        progressBar.progress = tmp
+                        progressText.text = (tmp * 100).roundToInt().toString() + "%"
+                    }
                 }
-            }
-            cipherOut.flush()
-            cipherOut.close()
-            sock.close()
+                cipherOut.flush()
+                cipherOut.close()
+                handleSocket?.close()
 
-            Platform.runLater {
-                progressBar.progress = 1.0
-                progressText.text = "Completed"
-                queue.add("*Transfer file $fileName successfully")
+                Platform.runLater {
+                    progressBar.progress = 1.0
+                    progressText.text = "Completed"
+                }
+                queueReceive.add("*Transfer file successfully!")
                 queueReceive.add("_Messag5eN")
+            } catch (e: Exception) {
+                queueReceive.add("*The download was interrupted")
+                queueReceive.add("_Messag5eN")
+                cipherOut?.close()
+                clientData?.close()
+                handleSocket?.close()
+
             }
-        }.start()
+        }
+               handleThread!!.start()
     }
+
+    fun stopReceiving() {
+        handleSocket?.close()
+        handleThread?.interrupt()
+    }
+
+    private fun initCipher(mode: Controller.Companion.Modes, sessionKey: Key): Cipher {
+        val initVector = "encryptionIntVec"
+        val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
+
+        val cipher: Cipher = when (mode) {
+            Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
+            Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
+            Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
+            Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
+        }
+
+        if (mode == Controller.Companion.Modes.EBC)
+            cipher.init(Cipher.DECRYPT_MODE, sessionKey)
+        else
+            cipher.init(Cipher.DECRYPT_MODE, sessionKey, iv)
+
+
+        return cipher
+    }
+
 }

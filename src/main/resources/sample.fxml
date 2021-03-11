@@ -113,6 +113,11 @@
                         <Blend mode="HARD_LIGHT" />
                      </effect>
                   </Button>
+                  <Button fx:id="bTStop" layoutX="22.0" layoutY="435.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="83.0" style="-fx-background-radius: 0; -fx-background-color: LIGHTPINK;" text="Stop" textAlignment="CENTER" visible="false" wrapText="true">
+                     <effect>
+                        <Blend mode="HARD_LIGHT" />
+                     </effect>
+                  </Button>
           </children>
         </AnchorPane>
         <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
@@ -154,57 +159,61 @@
         </ScrollPane>
         <AnchorPane fx:id="rightPane" minWidth="-Infinity">
           <children>
-            <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Settings" textAlignment="CENTER" textFill="$x2" wrapText="false" />
                   <TextField fx:id="iPText" layoutX="20.0" layoutY="80.0" prefHeight="25.0" prefWidth="184.0" promptText="Please enter adress IP" style="-fx-background-radius: 0;" text="192.168.1.100" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" />
-                  <Text layoutX="23.0" layoutY="68.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Server IP:" />
-                  <Text layoutX="23.0" layoutY="126.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Mode:" />
-                  <Button fx:id="bTTCP" layoutX="15.0" layoutY="200.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0; -fx-background-color: silver;" text="TCP" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
-                  <Button fx:id="bTUDP" disable="true" layoutX="116.0" layoutY="200.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="UDP" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
-                  <Text layoutX="22.0" layoutY="186.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Protocol:" />
-                  <Button fx:id="bTEBC" layoutX="15.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0; -fx-background-color: silver;" text="EBC" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
-                  <Button fx:id="bTCBC" layoutX="63.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="CBC" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
-                  <Button fx:id="bTCFB" layoutX="111.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="CFB" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
-                  <Button fx:id="bTOFB" layoutX="159.0" layoutY="137.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="OFB" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
-                  <Text fx:id="tIPHint" fill="#8a8a8a" layoutX="138.0" layoutY="97.0" mouseTransparent="true" strokeType="OUTSIDE" strokeWidth="0.0" text="Enter to save" textAlignment="RIGHT" visible="false" wrappingWidth="64.0" AnchorPane.rightAnchor="19.0">
-                     <font>
-                        <Font size="11.0" />
-                     </font>
-                  </Text>
-                  <Button fx:id="bTRenewKey" disable="true" layoutX="15.0" layoutY="293.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="Renew" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
-                  <Text layoutX="20.0" layoutY="279.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Session Key:" />
-                  <Button fx:id="bTShowKey" layoutX="116.0" layoutY="293.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="Show" textAlignment="CENTER" wrapText="true">
-                     <effect>
-                        <Blend mode="HARD_LIGHT" />
-                     </effect>
-                  </Button>
+                  <Group fx:id="groupRightPane" layoutX="14.0" layoutY="14.0">
+                     <children>
+                  <Label alignment="CENTER" font="$x1" style="&#10;" text="Settings" textAlignment="CENTER" textFill="$x2" wrapText="false" />
+                        <Text layoutX="8.0" layoutY="52.05078125" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Server IP:" />
+                        <Text layoutX="8.0" layoutY="113.0" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Mode:" />
+                        <Button fx:id="bTTCP" layoutX="1.0" layoutY="192.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0; -fx-background-color: silver;" text="TCP" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                        <Button fx:id="bTUDP" disable="true" layoutX="102.0" layoutY="193.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="UDP" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                        <Text layoutX="8.0" layoutY="178.05078125" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Protocol:" />
+                        <Button fx:id="bTEBC" layoutX="1.0" layoutY="127.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0; -fx-background-color: silver;" text="EBC" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                        <Button fx:id="bTCBC" layoutX="49.0" layoutY="127.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="CBC" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                        <Button fx:id="bTCFB" layoutX="97.0" layoutY="127.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="CFB" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                        <Button fx:id="bTOFB" layoutX="145.0" layoutY="127.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="47.0" style="-fx-background-radius: 0;" text="OFB" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                        <Text fx:id="tIPHint" fill="#8a8a8a" layoutX="124.0" layoutY="83.1298828125" mouseTransparent="true" strokeType="OUTSIDE" strokeWidth="0.0" text="Enter to save" textAlignment="RIGHT" visible="false" wrappingWidth="64.0">
+                           <font>
+                              <Font size="11.0" />
+                           </font>
+                        </Text>
+                        <Button fx:id="bTRenewKey" disable="true" layoutX="1.0" layoutY="276.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="Renew" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                        <Text layoutX="8.0" layoutY="263.05078125" opacity="0.6" strokeType="OUTSIDE" strokeWidth="0.0" text="Session Key:" />
+                        <Button fx:id="bTShowKey" layoutX="102.0" layoutY="276.0" mnemonicParsing="false" prefHeight="47.0" prefWidth="90.0" style="-fx-background-radius: 0;" text="Show" textAlignment="CENTER" wrapText="true">
+                           <effect>
+                              <Blend mode="HARD_LIGHT" />
+                           </effect>
+                        </Button>
+                     </children>
+                  </Group>
           </children>
         </AnchorPane>
       </items>

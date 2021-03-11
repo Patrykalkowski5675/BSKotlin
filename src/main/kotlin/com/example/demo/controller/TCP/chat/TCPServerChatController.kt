@@ -3,19 +3,20 @@ package com.example.demo.controller.TCP.chat
 import com.example.demo.controller.Controller
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.security.Key
-import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.crypto.Cipher
-import javax.crypto.CipherInputStream
-import javax.crypto.SecretKey
 import javax.crypto.spec.IvParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 
-object TCPServerChatController : TCPChatController {
+class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
+                              val queueReceive: ConcurrentLinkedQueue<String>,
+                              val mode: Controller.Companion.Modes,
+                              val sessionKey: Key
+                              ) : TCPChatController {
 
     @Volatile
     private var flagStart: Boolean = false
@@ -23,48 +24,36 @@ object TCPServerChatController : TCPChatController {
 
     private var ss = ServerSocket(5334)
     private var s: Socket? = null
-    private lateinit var outTo: DataOutputStream
-    private lateinit var br: DataInputStream
-
-    private lateinit var queue: ConcurrentLinkedQueue<String>
-    private lateinit var queueReceive: ConcurrentLinkedQueue<String>
-    private lateinit var mode: Controller.Companion.Modes
-    private lateinit var sessionKey: Key
-
-    private const val initVector = "encryptionIntVec"
-    private val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
+    private var inStream: DataInputStream? = null
+    private var outStream: DataOutputStream? = null
 
 
-    fun initChat(queue: ConcurrentLinkedQueue<String>,
-                          queueReceive: ConcurrentLinkedQueue<String>,
-                          mode: Controller.Companion.Modes,
-                          sessionKey: Key) {
-        this.queue = queue
-        this.queueReceive = queueReceive
-        this.mode = mode
-        this.sessionKey = sessionKey
-        running = true
-        initThreadSend()
+    private var handleThreadSend: Thread? = null
+    private var handleThreadReceive: Thread? = null
+
+
+   init{
         initThreadReceive()
+        initThreadSend()
+        running = true
     }
 
     private fun initThreadSend() {
-
         val cipher = initCipher(Cipher.ENCRYPT_MODE)
 
-        val threadSend = Thread {
+        handleThreadSend = Thread {
             var sd: String
             try {
                 while (running) {
-                    while (queue.isNotEmpty()) {
-                        sd = queue.poll()
+                    while (queue.isEmpty());
+                    sd = queue.poll()
 
-                        val encryptedMessageBytes = cipher.doFinal(sd.toByteArray())
+                    val encryptedMessageBytes = cipher.doFinal(sd.toByteArray())
 
-                        outTo.writeInt(encryptedMessageBytes.size)
-                        outTo.write(encryptedMessageBytes)
-                        outTo.flush()
-                    }
+                    outStream?.writeInt(encryptedMessageBytes.size)
+                    outStream?.write(encryptedMessageBytes)
+                    outStream?.flush()
+
                 }
 
             } catch (e: Exception) {
@@ -74,19 +63,19 @@ object TCPServerChatController : TCPChatController {
             }
         }
 
-        threadSend.start()
+        handleThreadSend!!.start()
     }
 
     private fun initThreadReceive() {
 
         val cipher = initCipher(Cipher.DECRYPT_MODE)
 
-        Thread {
+        handleThreadReceive = Thread {
             try {
                 s = ss.accept()
-
-                outTo = DataOutputStream(s!!.getOutputStream())
-                br = DataInputStream(s!!.getInputStream())
+                println((s!!.remoteSocketAddress as InetSocketAddress).address)
+                outStream = DataOutputStream(s!!.getOutputStream())
+                inStream = DataInputStream(s!!.getInputStream())
 
                 flagStart = true
                 queueReceive.add("*User join to chat TCP")
@@ -95,11 +84,12 @@ object TCPServerChatController : TCPChatController {
                 //syncSettingAndSendPublicKeyOnStartChat()
 
                 while (running) {
-                    val length: Int = br.readInt()
-                    val message = ByteArray(length)
-                    for (i in message.indices)
-                        message[i] = br.readByte()
-
+                    val length: Int? = inStream?.readInt()
+                    val message = length?.let { ByteArray(it) }
+                    if (message != null) {
+                        for (i in message.indices)
+                            message[i] = inStream!!.readByte()
+                    }
                     val encryptedMessageBytes = cipher.doFinal(message)
 
                     queueReceive.add(String(encryptedMessageBytes))
@@ -107,9 +97,9 @@ object TCPServerChatController : TCPChatController {
             } catch (e: Exception) {
                 running = false
                 queueReceive.add("*User left chat")
-                println("ServerRecive")
-                outTo.close()
-                br.close()
+                e.printStackTrace()
+                outStream?.close()
+                inStream?.close()
                 s?.close()
 //                ss.close()
                 flagStart = false
@@ -118,7 +108,29 @@ object TCPServerChatController : TCPChatController {
 //                e.printStackTrace()
 //                initThreadReceive()
             }
-        }.start()
+        }
+        handleThreadReceive!!.start()
+    }
+
+
+    override fun stop() {
+        running = false
+        outStream?.close()
+        inStream?.close()
+        s?.close()
+        ss.close()
+        try {
+//            handleThreadSend?.interrupt()
+//            handleThreadReceive?.interrupt()
+        }catch (e : Exception){
+
+        }
+
+//        running = false
+//        Thread.sleep(500)
+//        inStream.close()
+////                ss.close()
+//        s.close()
     }
 
     private fun syncSettingAndSendPublicKeyOnStartChat() {
@@ -132,6 +144,9 @@ object TCPServerChatController : TCPChatController {
 
 
     private fun initCipher(cipherMode: Int): Cipher {
+        val initVector = "encryptionIntVec"
+        val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
+
         val cipher: Cipher = when (mode) {
             Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
             Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
@@ -156,11 +171,5 @@ object TCPServerChatController : TCPChatController {
         return cipher
     }
 
-    override fun stop() {
-        running = false
-        Thread.sleep(500)
-        br.close()
-//                ss.close()
-        s?.close()
-    }
+
 }
