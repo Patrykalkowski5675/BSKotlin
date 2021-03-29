@@ -7,10 +7,8 @@ BSKotlin is a project that encrypts message and files. The program has been prep
 java -jar tornadofx-maven-project-1.0-jar-with-dependencies.jar Server
 
 ```
-<p align="center">
-   <img width=100% height=100% src="https://user-images.githubusercontent.com/50949711/112833093-8709e980-9096-11eb-85e7-1804434ff358.png">
-</p>
 
+![4](https://user-images.githubusercontent.com/50949711/112833093-8709e980-9096-11eb-85e7-1804434ff358.png)
 
 ## Usage - Client
 
