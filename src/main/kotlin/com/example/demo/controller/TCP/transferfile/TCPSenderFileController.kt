@@ -14,11 +14,11 @@ import java.security.Key
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.crypto.Cipher
 import javax.crypto.CipherOutputStream
-import javax.crypto.spec.IvParameterSpec
 import kotlin.math.roundToInt
 
+/// the IV is automatically generated when initializing the Cipher.
 
-object TCPSenderFileSendController {
+object TCPSenderFileController {
 
     var handleSocket: Socket? = null
 
@@ -45,7 +45,21 @@ object TCPSenderFileSendController {
 //            println("Sending...")
 
 
-                val cipher = Utility.initCipher(Cipher.ENCRYPT_MODE,mode,sessionKey)
+                // val cipher = Utility.initCipher(Cipher.ENCRYPT_MODE, mode, sessionKey)
+                //val cipher: Cipher  = Cipher.getInstance("AES/${mode}/PKCS5Padding")
+
+                val cipher: Cipher = when (mode) {
+                    Controller.Companion.Modes.EBC -> Cipher.getInstance("AES/ECB/PKCS5Padding")
+                    Controller.Companion.Modes.CBC -> Cipher.getInstance("AES/CBC/PKCS5Padding")
+                    Controller.Companion.Modes.CFB -> Cipher.getInstance("AES/CFB/PKCS5Padding")
+                    Controller.Companion.Modes.OFB -> Cipher.getInstance("AES/OFB/PKCS5Padding")
+                }
+
+                    cipher.init(Cipher.ENCRYPT_MODE, sessionKey)
+
+
+                //val cipher: Cipher  = Cipher.getInstance("AES/CBC/NoPadding ")
+                // cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
 
                 cipherOut = CipherOutputStream(os, cipher)
 
@@ -59,6 +73,15 @@ object TCPSenderFileSendController {
                 val data = ByteArray(4096) // 4k buffer, could be much larger
                 var count: Int
                 var tmp: Double
+
+
+
+                if (mode != Controller.Companion.Modes.EBC)
+                {
+                    val iv = cipher.iv
+                    os.write(iv)
+                }
+
 
                 while (bis.read(data).also { count = it } != -1) {
                     cipherOut.write(data, 0, count)
@@ -82,6 +105,7 @@ object TCPSenderFileSendController {
                 queueReceive.add("_Messag5eN")
                 queueReceive.add("_Messag1eS|Transfer file successfull")
             } catch (e: Exception) {
+                e.printStackTrace()
                 queueReceive.add("*The download was interrupted")
                 queueReceive.add("_Messag5eN")
                 cipherOut?.close()

@@ -15,8 +15,8 @@ import kotlin.io.path.Path
 
 class ToolsRSAKeys(private val hashPassword: ByteArray) {
 
-    private lateinit var privateKey: PrivateKey
-    private lateinit var publicKey: PublicKey
+    private var privateKey: PrivateKey? = null
+    private  var publicKey: PublicKey? = null
 
     private val initVector = "encryptionIntVec"
     private val iv = IvParameterSpec(initVector.toByteArray(charset("UTF-8")))
@@ -36,9 +36,7 @@ class ToolsRSAKeys(private val hashPassword: ByteArray) {
         fun areKeysPresent(): Boolean = File(privateKeyPathFile).exists() && File(publicKeyPathFile).exists()
     }
 
-
-    fun getKeys(): Pair<PrivateKey, PublicKey> = Pair(privateKey, publicKey)
-
+    fun getKeys(): Pair<PrivateKey?, PublicKey?> = Pair(privateKey, publicKey)
 
     private fun readKeys() {
         val privateKeyFile = File(privateKeyPathFile)
@@ -53,19 +51,13 @@ class ToolsRSAKeys(private val hashPassword: ByteArray) {
             val publicKeyBytesDecrypted = cipher.doFinal(publicKeyByteArray)
             publicKey = KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(publicKeyBytesDecrypted))
 
-            val fos3 = FileOutputStream("podglad2.txt")
-            fos3.write(publicKey.encoded)
-
             val privateKeyByteArray = Files.readAllBytes(privateKeyFile.toPath())
             val privateKeyBytesDecrypted = cipher.doFinal(privateKeyByteArray)
             privateKey = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(privateKeyBytesDecrypted))
+
         } catch (e: Exception) {
-            val keyMockGen = KeyPairGenerator.getInstance(algorithm)
-            keyMockGen.initialize(1024)
-            val keyMock = keyMockGen.generateKeyPair()
-            val keyMock2 = keyMockGen.generateKeyPair()
-            publicKey = keyMock.public
-            privateKey = keyMock2.private
+            publicKey = null
+            privateKey = null
         }
     }
 
@@ -94,12 +86,12 @@ class ToolsRSAKeys(private val hashPassword: ByteArray) {
             val secretKey: SecretKey = SecretKeySpec(hashPassword, "AES")
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv)
 
-            val byteArrayPublic = cipher.doFinal(publicKey.encoded)
+            val byteArrayPublic = cipher.doFinal(publicKey!!.encoded)
             val fos = FileOutputStream(publicKeyFile)
             fos.write(byteArrayPublic)
             fos.close()
 
-            val byteArrayPrivate = cipher.doFinal(privateKey.encoded)
+            val byteArrayPrivate = cipher.doFinal(privateKey!!.encoded)
             val fos2 = FileOutputStream(privateKeyFile)
             fos2.write(byteArrayPrivate)
             fos2.close()
@@ -108,46 +100,4 @@ class ToolsRSAKeys(private val hashPassword: ByteArray) {
             e.printStackTrace()
         }
     }
-
-//
-//    private fun encrypt(text: String, key: PublicKey?): ByteArray? {
-//        var cipherText: ByteArray? = null
-//        try {
-//            // get an RSA cipher object and print the provider
-//            val cipher = Cipher.getInstance(algorytm)
-//            // encrypt the plain text using the public key
-//            cipher.init(Cipher.ENCRYPT_MODE, key)
-//            cipherText = cipher.doFinal(text.toByteArray())
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//        }
-//        return cipherText
-//    }
-//
-//    /**
-//     * Decrypt text using private key.
-//     *
-//     * @param text
-//     * :encrypted text
-//     * @param key
-//     * :The private key
-//     * @return plain text
-//     * @throws java.lang.Exception
-//     */
-//    fun decrypt(text: ByteArray?, key: PrivateKey?): String {
-//        var dectyptedText: ByteArray? = null
-//        try {
-//            // get an RSA cipher object and print the provider
-//            val cipher = Cipher.getInstance(algorytm)
-//
-//            // decrypt the text using the private key
-//            cipher.init(Cipher.DECRYPT_MODE, key)
-//            dectyptedText = cipher.doFinal(text)
-//        } catch (ex: Exception) {
-//            ex.printStackTrace()
-//        }
-//        return String(dectyptedText!!)
-//    }
-//
-
 }

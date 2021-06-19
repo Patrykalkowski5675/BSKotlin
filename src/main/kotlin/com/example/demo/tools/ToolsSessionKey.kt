@@ -60,7 +60,5 @@ object ToolsSessionKey {
         val byteArraySessionKey = cipher.doFinal(byteArraySessionKey)
 
         return SecretKeySpec(byteArraySessionKey, "AES")
-
     }
-
 }

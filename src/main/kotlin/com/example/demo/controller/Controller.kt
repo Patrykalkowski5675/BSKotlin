@@ -5,8 +5,8 @@ import com.example.demo.controller.TCP.chat.TCPClientChatController
 import com.example.demo.controller.TCP.chat.TCPServerChatController
 import com.example.demo.controller.TCP.tranferSessionKey.TCPReceiverKey
 import com.example.demo.controller.TCP.tranferSessionKey.TCPSenderKey
-import com.example.demo.controller.TCP.transferfile.TCPReceiverFileSendController
-import com.example.demo.controller.TCP.transferfile.TCPSenderFileSendController
+import com.example.demo.controller.TCP.transferfile.TCPReceiverFileController
+import com.example.demo.controller.TCP.transferfile.TCPSenderFileController
 import com.example.demo.tools.EstablishConnection
 import com.example.demo.tools.ToolsRSAKeys
 import com.example.demo.tools.ToolsSessionKey
@@ -80,7 +80,11 @@ class Controller : Initializable {
     lateinit var rightPane: AnchorPane
     lateinit var groupRightPane: Group
     lateinit var leftPane: AnchorPane
+    var timeStart = System.currentTimeMillis()
+    var penalty = 0
 
+    private lateinit var keys: Pair<PrivateKey?, PublicKey?>
+    private lateinit var sessionKey: Key
 
     private var fileSize: Long = 0L
     private var fileName = "hmmm.txt"
@@ -89,14 +93,16 @@ class Controller : Initializable {
     private var dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
     private var listModeButtons = ArrayList<Button>()
     private var file: File? = null
-    private var handleChat : TCPChatController? = null
-
-    lateinit var keys: Pair<PrivateKey, PublicKey>
-    lateinit var sessionKey: Key
+    private var handleChat: TCPChatController? = null
 
     companion object {
         var nameUserFlag = true
         var namePartnerFlag = true
+        var mode: Modes = Modes.EBC
+        var protocol: Protocols = Protocols.TCP
+        var secondUserIP: String = "localhost"
+        var whoiam: String = ""
+        var invoked = false
 
         enum class Modes {
             EBC,
@@ -109,12 +115,6 @@ class Controller : Initializable {
             TCP,
             UDP
         }
-
-        var mode: Modes = Modes.EBC
-        var protocol: Protocols = Protocols.TCP
-        var secondUserIP: String = "localhost"
-        var whoiam: String = ""
-        var invoked = false
     }
 
     @FXML
@@ -145,10 +145,10 @@ class Controller : Initializable {
 
 //////////////////////// PASSWORD
 
+
     private fun changeDisability(bool: Boolean) {
         leftPane.isDisable = bool
         tFEnterText.isDisable = bool
-//        textAreaChat.isDisable = bool
         groupRightPane.isDisable = bool
     }
 
@@ -168,10 +168,8 @@ class Controller : Initializable {
 
         when (whoiam) {
             "Client" -> {
-
                 groupPassword.isVisible = false
                 queueReceive.add("_Messag1eS|Waiting for the Server")
-
 
                 Thread {
                     /// SECOND operation - Establish a connection
@@ -198,9 +196,7 @@ class Controller : Initializable {
                     queueReceive.add("_Messag1eS|Successfully connected with Server")
                     queueReceive.add("*Successfully connected with Server")
 
-
                 }.start()
-
             }
             "Server" -> {
                 val lengthOfPassword = 4
@@ -225,34 +221,48 @@ class Controller : Initializable {
 
                 buttonPassword.setOnAction {
 
+                   // println(System.currentTimeMillis() - timeStart - penalty * 1000F)
+                    if (System.currentTimeMillis() - timeStart < penalty * 1000F) {
+                       // print("czas jeszcze nie uplynal")
+                        return@setOnAction
+                    }
+                    timeStart = System.currentTimeMillis()
+
                     /// create hash from password
                     val str = textPassword.text
+
+
+
                     if (str.length >= lengthOfPassword) {
                         val digest = MessageDigest.getInstance("SHA-256")
                         val hash = digest.digest(str.toByteArray(StandardCharsets.UTF_8))
+                        keys = ToolsRSAKeys(hash).getKeys()
+                        if (keys.first == null) {
+                            penalty += 10
+                            tPassTooShort.text = "Wrong password, wait ${penalty} second to try again"
+                            tPassTooShort.isVisible = true
+                        } else {
+                            groupPassword.isVisible = false
+                            queueReceive.add("*Waiting for other user")
 
-                        groupPassword.isVisible = false
-                        queueReceive.add("*Waiting for other user")
+                            Thread {
+                                /// FIRST operation- establish a connection
+                                EstablishConnection.waitForConnection()
 
+                                /// THIRD operation- send a public key
 
-                        Thread {
-                            /// FIRST operation- establish a connection
-                            EstablishConnection.waitForConnection()
+                                TCPSenderKey.initTransferKey(keys.second!!)
+                                queueReceive.add("*Sent public key")
 
-                            /// THIRD operation- send a public key
-                            keys = ToolsRSAKeys(hash).getKeys()
-                            TCPSenderKey.initTransferKey(keys.second)
-                            queueReceive.add("*Sent public key")
-
-                            /// SIXTH operation - receive a session
-                            queueReceive.add("*Waiting for session key")
-                            val byteArray = TCPReceiverKey.initReceiveKey(secondUserIP)
-                            sessionKey = ToolsSessionKey.decodeSessionKey(byteArray, keys.first)
-                            changeDisability(false)
-                            continueInit()
-                            invoked = false
-                        }.start()
-
+                                /// SIXTH operation - receive a session
+                                queueReceive.add("*Waiting for session key")
+                                val byteArray = TCPReceiverKey.initReceiveKey(secondUserIP)
+                                sessionKey = ToolsSessionKey.decodeSessionKey(byteArray, keys.first!!)
+                                changeDisability(false)
+                                continueInit()
+                                invoked = false
+                            }.start()
+                        }
                         queueReceive.add("_Messag1eS|The password has been entered successfully")
                     } else tPassTooShort.isVisible = true
                 }
@@ -263,7 +273,6 @@ class Controller : Initializable {
                 }
             }
         }
-
     }
 
     private fun initSessionKeyButtons() {
@@ -273,9 +282,7 @@ class Controller : Initializable {
             queue.add("_Messag8e1")
             exchangeSessionKey()
         }
-
         bTShowKey.setOnAction { queueReceive.add("Session Key HEX: " + DatatypeConverter.printHexBinary(sessionKey.encoded)) }
-
     }
 
 
@@ -331,7 +338,6 @@ class Controller : Initializable {
             progressText.text = "Sending is no init"
             progressBar.progress = 0.0
         }
-
         rightPane.isDisable = false
     }
 
@@ -347,7 +353,6 @@ class Controller : Initializable {
                 tFFile.text = file!!.name
                 fileName = file!!.name
                 fileSize = file!!.length()
-
 
                 tSize.text = Utility.calculateSizeFile(fileSize)
 
@@ -369,7 +374,7 @@ class Controller : Initializable {
             queue.add("_Messag5eY")
             queue.add("*User accepted the file")
             queueReceive.add("_Messag1eS|File accepted")
-            TCPReceiverFileSendController.receiveFile(mode, progressBar, fileName, fileSize, progressText, queue, queueReceive, sessionKey, secondUserIP)
+            TCPReceiverFileController.receiveFile(mode, progressBar, fileName, fileSize, progressText, queue, queueReceive, sessionKey, secondUserIP)
             rightPane.isDisable = true
             changeGUIForFileTransfer()
         }
@@ -381,8 +386,8 @@ class Controller : Initializable {
         }
 
         bTStop.setOnAction {
-            TCPReceiverFileSendController.stopReceiving()
-            TCPSenderFileSendController.stopReceiving()
+            TCPReceiverFileController.stopReceiving()
+            TCPSenderFileController.stopReceiving()
         }
     }
 
@@ -407,32 +412,34 @@ class Controller : Initializable {
                 changeStatus("User wants to send a file")
             }
             "_Messag5eY" -> Platform.runLater {
-                TCPSenderFileSendController.sendFile(file!!, mode, progressBar, progressText, queue, queueReceive, sessionKey)
+                TCPSenderFileController.sendFile(file!!, mode, progressBar, progressText, queue, queueReceive, sessionKey)
                 changeGUIForFileTransfer()
             }
             "_Messag5eN" -> Platform.runLater { changeGUIForFileChoice() }
             "_Messag6e1" -> Platform.runLater {
                 changeUIButtonsMode(0)
                 changeStatus("User changed mode to ECB")
+                handleChat?.changeCipherMode(Modes.EBC)
             }
             "_Messag6e2" -> Platform.runLater {
                 changeUIButtonsMode(1)
                 changeStatus("User changed mode to CBC")
+                handleChat?.changeCipherMode(Modes.CBC)
             }
             "_Messag6e3" -> Platform.runLater {
                 changeUIButtonsMode(2)
                 changeStatus("User changed mode to CFB")
+                handleChat?.changeCipherMode(Modes.CFB)
             }
             "_Messag6e4" -> Platform.runLater {
                 Platform.runLater { changeUIButtonsMode(3) }
                 changeStatus("User changed mode to OFB")
+                handleChat?.changeCipherMode(Modes.OFB)
             }
             "_Messag8e1" -> Platform.runLater { exchangeSessionKey() }
             else -> {
-
                 return false
             }
-
         }
         return true
     }
@@ -442,14 +449,12 @@ class Controller : Initializable {
         queueReceive = ConcurrentLinkedQueue<String>()
         when (whoiam) {
             "Server" -> {
-
                 handleChat?.stop()
                 handleChat = TCPServerChatController(queue, queueReceive, mode, sessionKey)
 
             }
             "Client" -> {
-
-                    handleChat?.stop()
+                handleChat?.stop()
                 handleChat = TCPClientChatController(queue, queueReceive, mode, sessionKey, secondUserIP)
             }
             else -> println("Unknown parameter")
@@ -511,8 +516,6 @@ class Controller : Initializable {
                 tFEnterText.text = s
             }
         }
-
-
     }
 
     //////////////////////// SETTING
@@ -522,8 +525,6 @@ class Controller : Initializable {
             "Server" -> {
                 iPText.text = InetAddress.getLocalHost().hostAddress.toString() + " (Unable change IP)"
                 iPText.isDisable = true
-//                iPText.isEditable = false
-//                iPText.isMouseTransparent = true
             }
             "Client" -> {
                 iPText.text = secondUserIP
@@ -537,8 +538,6 @@ class Controller : Initializable {
             queueReceive.add("_Messag1eS|An IP address has been entered")
             println(secondUserIP)
             EstablishConnection.changeSecondUserIP(secondUserIP)
-            //TCPReceiverKey.stopReceiveKey()
-            // exchangeSessionKey()
         }
         iPText.onKeyPressed = EventHandler {
             if (iPText.text.length > 15) tIPHint.text = "Invalid IP"
@@ -571,28 +570,30 @@ class Controller : Initializable {
         listModeButtons.add(bTCFB)
         listModeButtons.add(bTOFB)
 
-
         bTEBC.setOnAction {
             queue.add("_Messag6e1")
             queueReceive.add("_Messag1eS|Change to EBC")
             changeUIButtonsMode(0)
+            handleChat?.changeCipherMode(Modes.EBC)
         }
         bTCBC.setOnAction {
             queue.add("_Messag6e2")
             queueReceive.add("_Messag1eS|Change to CBC")
             changeUIButtonsMode(1)
+            handleChat?.changeCipherMode(Modes.CBC)
         }
         bTCFB.setOnAction {
             queue.add("_Messag6e3")
             queueReceive.add("_Messag1eS|Change to CFB")
             changeUIButtonsMode(2)
+            handleChat?.changeCipherMode(Modes.CFB)
         }
         bTOFB.setOnAction {
             queue.add("_Messag6e4")
             queueReceive.add("_Messag1eS|Change to OFB")
             changeUIButtonsMode(3)
+            handleChat?.changeCipherMode(Modes.OFB)
         }
-
     }
 
     //////////////////////// MENU
@@ -612,7 +613,6 @@ class Controller : Initializable {
             stage.show()
         }
         mQuit.setOnAction { exitProcess(1) }
-
     }
 
     private fun initFnOnClose() {

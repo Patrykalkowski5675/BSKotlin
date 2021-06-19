@@ -13,11 +13,10 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 
 
-class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
-                              val queueReceive: ConcurrentLinkedQueue<String>,
-                              val mode: Controller.Companion.Modes,
-                              val sessionKey: Key
-                              ) : TCPChatController {
+class TCPServerChatController(private val queue: ConcurrentLinkedQueue<String>,
+                              private val queueReceive: ConcurrentLinkedQueue<String>,
+                              private var mode: Controller.Companion.Modes,
+                              private val sessionKey: Key) : TCPChatController {
 
     @Volatile
     private var flagStart: Boolean = false
@@ -28,12 +27,13 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
     private var inStream: DataInputStream? = null
     private var outStream: DataOutputStream? = null
 
-
     private var handleThreadSend: Thread? = null
     private var handleThreadReceive: Thread? = null
 
+    private var handleCipherSend : Cipher? = null
+    private var handleCipherReceive : Cipher? = null
 
-   init{
+    init {
         initThreadReceive()
         initThreadSend()
         running = true
@@ -41,7 +41,7 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
 
     private fun initThreadSend() {
 
-        val cipher = Utility.initCipher(Cipher.ENCRYPT_MODE,mode,sessionKey)
+        handleCipherSend = Utility.initCipher(Cipher.ENCRYPT_MODE, mode, sessionKey)
 
         handleThreadSend = Thread {
             var sd: String
@@ -50,7 +50,7 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
                     while (queue.isEmpty());
                     sd = queue.poll()
 
-                    val encryptedMessageBytes = cipher.doFinal(sd.toByteArray())
+                    val encryptedMessageBytes =  handleCipherSend!!.doFinal(sd.toByteArray())
 
                     outStream?.writeInt(encryptedMessageBytes.size)
                     outStream?.write(encryptedMessageBytes)
@@ -70,7 +70,7 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
 
     private fun initThreadReceive() {
 
-        val cipher = Utility.initCipher(Cipher.DECRYPT_MODE,mode,sessionKey)
+        handleCipherReceive = Utility.initCipher(Cipher.DECRYPT_MODE, mode, sessionKey)
 
         handleThreadReceive = Thread {
             try {
@@ -92,7 +92,7 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
                         for (i in message.indices)
                             message[i] = inStream!!.readByte()
                     }
-                    val encryptedMessageBytes = cipher.doFinal(message)
+                    val encryptedMessageBytes = handleCipherReceive!!.doFinal(message)
 
                     queueReceive.add(String(encryptedMessageBytes))
                 }
@@ -114,6 +114,12 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
         handleThreadReceive!!.start()
     }
 
+    override fun changeCipherMode(mode : Controller.Companion.Modes) {
+       this.mode = mode
+        while (queue.isNotEmpty() && queueReceive.isNotEmpty());
+        handleCipherSend = Utility.initCipher(Cipher.ENCRYPT_MODE, mode, sessionKey)
+        handleCipherReceive = Utility.initCipher(Cipher.DECRYPT_MODE, mode, sessionKey)
+    }
 
     override fun stop() {
         running = false
@@ -124,7 +130,7 @@ class TCPServerChatController(val queue: ConcurrentLinkedQueue<String>,
         try {
 //            handleThreadSend?.interrupt()
 //            handleThreadReceive?.interrupt()
-        }catch (e : Exception){
+        } catch (e: Exception) {
 
         }
 

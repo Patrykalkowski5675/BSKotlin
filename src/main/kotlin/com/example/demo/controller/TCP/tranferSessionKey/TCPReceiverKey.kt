@@ -40,7 +40,4 @@ object TCPReceiverKey {
         return byteArray
     }
 
-    fun stopReceiveKey(){
-        flag =false
-    }
 }
