@@ -49,8 +49,10 @@ object TCPReceiverFileController {
                 /// cipher.blockSize
                 //val cipher = Utility.initCipher(Cipher.DECRYPT_MODE, mode, sessionKey)
 
-                val iv = ByteArray(16)
-                clientData.read(iv)
+                val iv  = ByteArray(16)
+                if (mode !== Controller.Companion.Modes.EBC) {
+                    clientData.read(iv)
+                }
 
 
                 val cipher: Cipher = when (mode) {
@@ -65,9 +67,6 @@ object TCPReceiverFileController {
                     cipher.init(Cipher.DECRYPT_MODE, sessionKey)
                 else
                     cipher.init(Cipher.DECRYPT_MODE, sessionKey, IvParameterSpec(iv))
-
-
-
 
 
                 cipherOut = CipherOutputStream(os, cipher)

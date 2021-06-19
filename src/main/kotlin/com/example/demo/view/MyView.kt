@@ -5,7 +5,7 @@ import javafx.scene.Parent
 import tornadofx.View
 
 
-class MainView : View("Patryk Kalkowski 175669") {
+class MainView : View("BSKotlin") {
     override val root: Parent = FXMLLoader.load(javaClass.classLoader.getResource("sample.fxml"))
 
 }

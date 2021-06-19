@@ -13,7 +13,7 @@ import javax.crypto.spec.IvParameterSpec
 
 class TCPClientChatController(private val queue: ConcurrentLinkedQueue<String>,
                               private val queueReceive: ConcurrentLinkedQueue<String>,
-                              private var mode: Controller.Companion.Modes,
+                              @Volatile private var mode: Controller.Companion.Modes,
                               private val sessionKey: Key,
                               private var secondUserIP: String) : TCPChatController {
 
@@ -23,8 +23,10 @@ class TCPClientChatController(private val queue: ConcurrentLinkedQueue<String>,
     private var invoked: Boolean = false
 
     private var s: Socket? = null
-    private var inStream: DataInputStream? = null
-    private var outStream: DataOutputStream? = null
+    @Volatile private var inStream: DataInputStream? = null
+    @Volatile private var outStream: DataOutputStream? = null
+    var iv :ByteArray? = ByteArray(16)
+    var ivToSend :ByteArray = Utility.initIV()
 
     private var handleThreadSend: Thread? = null
     private var handleThreadReceive: Thread? = null
@@ -40,13 +42,14 @@ class TCPClientChatController(private val queue: ConcurrentLinkedQueue<String>,
 
 
     private fun initThreadSend() {
-
-        handleCipherSend = Utility.initCipher(Cipher.ENCRYPT_MODE, mode, sessionKey)
-
         handleThreadSend = Thread {
             try {
+
+
+
                 var sd: String
                 while (running) {
+
                     while (queue.isEmpty());
                     if (flagStart) {
                         sd = queue.poll()
@@ -67,21 +70,27 @@ class TCPClientChatController(private val queue: ConcurrentLinkedQueue<String>,
 
     private fun initThreadReceive() {
 
-        handleCipherReceive = Utility.initCipher(Cipher.DECRYPT_MODE, mode, sessionKey)
-
 //        if (!running) return
         handleThreadReceive = Thread {
             try {
-//                println(secondUserIP)
                 s = Socket(secondUserIP, 5334)
                 inStream = DataInputStream(s!!.getInputStream())
                 outStream = DataOutputStream(s!!.getOutputStream())
 
+
+
+                handleCipherSend = Utility.initCipher(Cipher.ENCRYPT_MODE, mode, sessionKey,ivToSend)
+
+                outStream?.write(ivToSend)
+                inStream?.read(iv)
+
                 flagStart = true
                 invoked = true
 
-                while (true) {
+                handleCipherReceive = Utility.initCipher(Cipher.DECRYPT_MODE, mode, sessionKey, iv)
 
+
+                while (true) {
                     val length: Int? = inStream?.readInt()
                     val message = length?.let { ByteArray(it) }
                     if (message != null) {
@@ -111,10 +120,11 @@ class TCPClientChatController(private val queue: ConcurrentLinkedQueue<String>,
     }
 
     override fun changeCipherMode(mode: Controller.Companion.Modes) {
-        this.mode = mode
+
         while (queue.isNotEmpty() && queueReceive.isNotEmpty());
-        handleCipherSend = Utility.initCipher(Cipher.ENCRYPT_MODE, mode, sessionKey)
-        handleCipherReceive = Utility.initCipher(Cipher.DECRYPT_MODE, mode, sessionKey)
+        this.mode = mode
+        handleCipherSend = Utility.initCipher(Cipher.ENCRYPT_MODE, mode, sessionKey,ivToSend)
+        handleCipherReceive = Utility.initCipher(Cipher.DECRYPT_MODE, mode, sessionKey, iv)
     }
 
 

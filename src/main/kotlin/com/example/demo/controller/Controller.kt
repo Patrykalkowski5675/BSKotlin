@@ -239,8 +239,8 @@ class Controller : Initializable {
                         keys = ToolsRSAKeys(hash).getKeys()
                         if (keys.first == null) {
                             penalty += 10
-                            tPassTooShort.text = "Wrong password, wait ${penalty} second to try again"
-                            tPassTooShort.isVisible = true
+                            tNoFileWithKeys.text = "Wrong password, wait ${penalty} second to try again"
+                            tNoFileWithKeys.isVisible = true
                         } else {
                             groupPassword.isVisible = false
                             queueReceive.add("*Waiting for other user")
@@ -262,8 +262,9 @@ class Controller : Initializable {
                                 continueInit()
                                 invoked = false
                             }.start()
+                            queueReceive.add("_Messag1eS|The password has been entered successfully")
                         }
-                        queueReceive.add("_Messag1eS|The password has been entered successfully")
+
                     } else tPassTooShort.isVisible = true
                 }
 
